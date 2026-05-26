@@ -1,0 +1,735 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defensoría del Pueblo - Sistema de Supervisión</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#003366">
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo-area">
+                <img src="logo.png" alt="Logo" class="header-logo">
+                <span>DEFENSORÍA DEL PUEBLO</span>
+            </div>
+            <button id="defensor-link" class="admin-link"
+                style="background: rgba(255,255,255,0.1); border:none; color:white; padding:8px 15px; border-radius:8px; cursor:pointer;"
+                onclick="adminLogin()">Admin 🔑</button>
+        </div>
+    </header>
+
+    <!-- MENÚ PRINCIPAL (PANTALLA INICIAL v3.0) -->
+    <div id="main-menu" class="container mt-4">
+        <div class="text-center mb-4">
+            <h1 class="h3 fw-bold text-primary mb-1">Defensoria del Pueblo</h1>
+            <p class="text-muted small">Sistema Integral de Monitoreo - v3.0</p>
+        </div>
+        
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-alertas" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #ffc107 !important;">
+                    <div class="d-flex align-items-center">
+                        <div class="fs-1 me-3">🚨</div>
+                        <div>
+                            <h3 class="h6 fw-bold mb-1" style="color: #003366;">1. Registro de Alertas</h3>
+                            <p class="text-muted small mb-0">Reportes de incidencias críticas, heridos y detenidos.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12">
+                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-acciones" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #0dcaf0 !important;">
+                    <div class="d-flex align-items-center">
+                        <div class="fs-1 me-3">🤝</div>
+                        <div>
+                            <h3 class="h6 fw-bold mb-1" style="color: #003366;">2. Acciones Colectivas</h3>
+                            <p class="text-muted small mb-0">Registro de mediaciones, mesas de diálogo y marchas.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12">
+                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-supervision" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #003366 !important;">
+                    <div class="d-flex align-items-center">
+                        <div class="fs-1 me-3">📋</div>
+                        <div>
+                            <h3 class="h6 fw-bold mb-1" style="color: #003366;">3. Supervisión de Campo</h3>
+                            <p class="text-muted small mb-0">Supervisiones presenciales en OD/MOD y puntos en vivo.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+        <!-- ======================================================= -->
+        <!-- MÓDULO: REGISTRO DE ALERTAS                           -->
+        <!-- ======================================================= -->
+        <div id="modulo-alertas" class="d-none modulo-wrapper">
+
+            <!-- VISTA LISTA -->
+            <div id="alertas-list-view">
+                <div class="modulo-header">
+                    <button class="back-to-menu-btn btn-back-modulo">⬅ Menú</button>
+                    <div class="modulo-title-area">
+                        <h2 class="modulo-title">🚨 Registro de Alertas</h2>
+                        <button id="nueva-alerta-btn" class="btn-nuevo-registro">+ Nueva Alerta</button>
+                    </div>
+                </div>
+                <div id="alertas-records-list" class="records-list">
+                    <p class="empty-state">Cargando alertas...</p>
+                </div>
+            </div>
+
+            <!-- VISTA FORMULARIO -->
+            <div id="alertas-form-view" class="d-none">
+                <div class="form-sticky-header">
+                    <div class="form-sticky-inner">
+                        <h3 id="alerta-form-title" class="form-sticky-title">Registro de Nueva Alerta</h3>
+                        <div class="form-sticky-btns">
+                            <button id="cancelar-alerta-btn" class="btn-form-cancel">Cancelar</button>
+                            <button id="guardar-alerta-btn" class="btn-form-save">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="alerta-form-el" class="form-two-col" onsubmit="return false;">
+                    <!-- COLUMNA IZQUIERDA -->
+                    <div class="form-col-left">
+
+                        <!-- 1. Información General -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">1. Información General</h4>
+                            <input type="text" id="alerta-nombre-evento" class="form-input" placeholder="Nombre del Evento*" required>
+                            <select id="alerta-clasificacion" class="form-input" required>
+                                <option value="">Clasificación de la Alerta*</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. Vincular Conflicto -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">2. Vincular Conflicto</h4>
+                                <button type="button" id="buscar-conflicto-alerta-btn" class="btn-section-action">🔍 Buscar conflicto</button>
+                            </div>
+                            <div id="alerta-conflicto-container" class="conflicto-placeholder-wrap">
+                                <div class="conflicto-placeholder">
+                                    <span class="info-icon">ℹ️</span>
+                                    <p>No hay conflicto vinculado. Use el botón "Buscar conflicto" para asociar uno.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Descripción y Contexto -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">3. Descripción y Contexto</h4>
+                            <textarea id="alerta-descripcion" class="form-input form-textarea" placeholder="Descripción de los hechos*" rows="4" required></textarea>
+                            <textarea id="alerta-demandas" class="form-input form-textarea" placeholder="Demandas principales de los actores" rows="3"></textarea>
+                        </div>
+
+                        <!-- 4. Detalles de la Alerta -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">4. Detalles de la Alerta</h4>
+                            <div class="form-row-2">
+                                <div class="form-field-float">
+                                    <input type="number" id="alerta-cantidad-personas" class="form-input" value="0" min="0">
+                                    <label class="float-label">Cantidad de personas involucradas</label>
+                                </div>
+                            </div>
+                            <div class="form-row-2">
+                                <select id="alerta-tipo-medida" class="form-input"><option value="">Tipos de Medida</option></select>
+                                <select id="alerta-tipo-demanda" class="form-input"><option value="">Tipos de Demanda</option></select>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- COLUMNA DERECHA -->
+                    <div class="form-col-right">
+
+                        <!-- 5. Ubicación del Conflicto -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">5. Ubicación del Conflicto</h4>
+                                <button type="button" id="agregar-ubicacion-alerta-btn" class="btn-section-action">📍 Agregar</button>
+                            </div>
+                            <div id="alerta-ubicaciones-list">
+                                <p class="empty-state-sm">No hay ubicaciones agregadas.</p>
+                            </div>
+                        </div>
+
+                        <!-- 6. Actores Involucrados -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">6. Actores Involucrados</h4>
+                                <button type="button" id="agregar-actor-alerta-btn" class="btn-section-action">👥 Agregar</button>
+                            </div>
+                            <div id="alerta-actores-list">
+                                <p class="empty-state-sm">Agregue al menos un actor involucrado.</p>
+                            </div>
+                        </div>
+
+                        <!-- 7. Análisis de Riesgo -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">7. Análisis de Riesgo</h4>
+                            <div class="riesgo-row">
+                                <select id="alerta-riesgo-prob" class="form-input" onchange="calcularNivelRiesgo('alerta')">
+                                    <option value="">Probabilidad (P)*</option>
+                                    <option value="1">1 — Muy baja</option>
+                                    <option value="2">2 — Baja</option>
+                                    <option value="3">3 — Media</option>
+                                    <option value="4">4 — Alta</option>
+                                    <option value="5">5 — Muy alta</option>
+                                </select>
+                                <select id="alerta-riesgo-impacto" class="form-input" onchange="calcularNivelRiesgo('alerta')">
+                                    <option value="">Impacto (I)*</option>
+                                    <option value="1">1 — Muy bajo</option>
+                                    <option value="2">2 — Bajo</option>
+                                    <option value="3">3 — Medio</option>
+                                    <option value="4">4 — Alto</option>
+                                    <option value="5">5 — Muy alto</option>
+                                </select>
+                                <div class="nivel-riesgo-container">
+                                    <span style="font-size:0.8rem; color:#666;">Nivel de Riesgo:</span>
+                                    <span id="alerta-nivel-riesgo" class="nivel-riesgo-badge">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 8. Documentos de Evidencia -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">8. Documentos de Evidencia</h4>
+                            <div id="alerta-dropzone" class="dropzone">
+                                <span class="dropzone-icon">☁️</span>
+                                <p>Arrastra y suelta archivos, o <strong>haz clic para seleccionar</strong>.</p>
+                                <p class="dropzone-hint">PDF, PNG, JPG, etc.</p>
+                            </div>
+                            <input type="file" id="alerta-file-input" multiple accept="image/*,.pdf,.doc,.docx" style="display:none;">
+                            <div id="alerta-docs-list" class="docs-list"></div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- MÓDULO: ACCIONES COLECTIVAS DE PROTESTA (ACP)          -->
+        <!-- ======================================================= -->
+        <div id="modulo-acciones" class="d-none modulo-wrapper">
+
+            <!-- VISTA LISTA -->
+            <div id="acp-list-view">
+                <div class="modulo-header">
+                    <button class="back-to-menu-btn btn-back-modulo">⬅ Menú</button>
+                    <div class="modulo-title-area">
+                        <h2 class="modulo-title">🤝 Acciones Colectivas de Protesta</h2>
+                        <button id="nueva-acp-btn" class="btn-nuevo-registro">+ Nueva ACP</button>
+                    </div>
+                </div>
+                <div id="acp-records-list" class="records-list">
+                    <p class="empty-state">Cargando registros...</p>
+                </div>
+            </div>
+
+            <!-- VISTA FORMULARIO -->
+            <div id="acp-form-view" class="d-none">
+                <div class="form-sticky-header">
+                    <div class="form-sticky-inner">
+                        <h3 id="acp-form-title" class="form-sticky-title">Registro de Nueva Acción Colectiva de Protesta</h3>
+                        <div class="form-sticky-btns">
+                            <button id="cancelar-acp-btn" class="btn-form-cancel">Cancelar</button>
+                            <button id="guardar-acp-btn" class="btn-form-save">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="acp-form-el" class="form-two-col" onsubmit="return false;">
+                    <!-- COLUMNA IZQUIERDA -->
+                    <div class="form-col-left">
+
+                        <!-- 1. Información General -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">1. Información General</h4>
+                            <input type="text" id="acp-nombre-evento" class="form-input" placeholder="Nombre del Evento*" required>
+                            <div class="form-row-2">
+                                <input type="date" id="acp-fecha-evento" class="form-input" required>
+                                <select id="acp-fuente-info" class="form-input" required>
+                                    <option value="">Fuente de Información*</option>
+                                </select>
+                            </div>
+                            <input type="text" id="acp-link-fuente" class="form-input" placeholder="Link o Detalle de la Fuente">
+                        </div>
+
+                        <!-- 2. Vincular Conflicto -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">2. Vincular Conflicto</h4>
+                                <button type="button" id="buscar-conflicto-acp-btn" class="btn-section-action">🔍 Buscar conflicto</button>
+                            </div>
+                            <div id="acp-conflicto-container" class="conflicto-placeholder-wrap">
+                                <div class="conflicto-placeholder">
+                                    <span class="info-icon">ℹ️</span>
+                                    <p>No hay conflicto vinculado. Use el botón "Buscar conflicto" para asociar uno.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Descripción y Contexto -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">3. Descripción y Contexto</h4>
+                            <textarea id="acp-descripcion" class="form-input form-textarea" placeholder="Descripción de los hechos*" rows="4" required></textarea>
+                            <textarea id="acp-demandas" class="form-input form-textarea" placeholder="Demandas principales de los actores" rows="3"></textarea>
+                        </div>
+
+                        <!-- 4. Detalles de la Protesta -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">4. Detalles de la Protesta</h4>
+                            <div class="form-row-2">
+                                <div class="form-field-float">
+                                    <input type="number" id="acp-cantidad-personas" class="form-input" value="0" min="0">
+                                    <label class="float-label">Cantidad de personas involucradas</label>
+                                </div>
+                                <div class="form-field-float">
+                                    <input type="number" id="acp-cantidad-terceros" class="form-input" value="0" min="0">
+                                    <label class="float-label">Cantidad aprox. de terceros afectados</label>
+                                </div>
+                            </div>
+                            <div class="form-row-2">
+                                <select id="acp-tipo-medida" class="form-input"><option value="">Tipos de Medida</option></select>
+                                <select id="acp-tipo-demanda" class="form-input"><option value="">Tipos de Demanda</option></select>
+                            </div>
+                            <select id="acp-hubo-violencia" class="form-input" required>
+                                <option value="" disabled selected>Hubo violencia*</option>
+                                <option value="Sí">Sí</option>
+                                <option value="No">No</option>
+                                <option value="No identificado">No identificado</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <!-- COLUMNA DERECHA -->
+                    <div class="form-col-right">
+
+                        <!-- 5. Actores Involucrados -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">5. Actores Involucrados</h4>
+                                <button type="button" id="agregar-actor-acp-btn" class="btn-section-action">👥 Agregar</button>
+                            </div>
+                            <div id="acp-actores-list">
+                                <p class="empty-state-sm">Agregue al menos un actor involucrado.</p>
+                            </div>
+                        </div>
+
+                        <!-- 6. Personas Heridas -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">6. Personas Heridas</h4>
+                                <button type="button" id="agregar-herida-btn" class="btn-section-action">+ Agregar</button>
+                            </div>
+                            <div id="acp-heridas-list">
+                                <p class="empty-state-sm">No hay personas heridas registradas.</p>
+                            </div>
+                        </div>
+
+                        <!-- 7. Personas Privadas de Libertad -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">7. Personas Privadas de Libertad</h4>
+                                <button type="button" id="agregar-detenida-btn" class="btn-section-action">+ Agregar</button>
+                            </div>
+                            <div id="acp-detenidas-list">
+                                <p class="empty-state-sm">No hay personas detenidas registradas.</p>
+                            </div>
+                        </div>
+
+                        <!-- 8. Personas Fallecidas -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">8. Personas Fallecidas</h4>
+                                <button type="button" id="agregar-fallecida-btn" class="btn-section-action">+ Agregar</button>
+                            </div>
+                            <div id="acp-fallecidas-list">
+                                <p class="empty-state-sm">No hay personas fallecidas registradas.</p>
+                            </div>
+                        </div>
+
+                        <!-- 9. Personas Desaparecidas -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">9. Personas Desaparecidas</h4>
+                                <button type="button" id="agregar-desaparecida-btn" class="btn-section-action">+ Agregar</button>
+                            </div>
+                            <div id="acp-desaparecidas-list">
+                                <p class="empty-state-sm">No hay personas desaparecidas registradas.</p>
+                            </div>
+                        </div>
+
+                        <!-- 10. Ubicación del Conflicto -->
+                        <div class="form-section-card">
+                            <div class="section-header-row">
+                                <h4 class="form-section-title">10. Ubicación del Conflicto</h4>
+                                <button type="button" id="agregar-ubicacion-acp-btn" class="btn-section-action">📍 Agregar</button>
+                            </div>
+                            <div id="acp-ubicaciones-list">
+                                <p class="empty-state-sm">No hay ubicaciones agregadas.</p>
+                            </div>
+                        </div>
+
+                        <!-- 11. Documentos de Evidencia -->
+                        <div class="form-section-card">
+                            <h4 class="form-section-title">11. Documentos de Evidencia</h4>
+                            <div id="acp-dropzone" class="dropzone">
+                                <span class="dropzone-icon">☁️</span>
+                                <p>Arrastra y suelta archivos, o <strong>haz clic para seleccionar</strong>.</p>
+                                <p class="dropzone-hint">PDF, PNG, JPG, etc.</p>
+                            </div>
+                            <input type="file" id="acp-file-input" multiple accept="image/*,.pdf,.doc,.docx" style="display:none;">
+                            <div id="acp-docs-list" class="docs-list"></div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MÓDULO: SUPERVISIÓN DE CAMPO (ENVOLTURA DEL FORMULARIO ACTUAL) -->
+        <div id="modulo-supervision" class="d-none">
+            <!-- SECCIÓN 1: SELECCIÓN -->
+            <section id="selection-section" class="selection-grid">
+                <button class="btn btn-sm btn-outline-secondary mb-2 back-to-menu-btn" style="align-self: flex-start; max-width: 200px;">
+                    ⬅ Volver al Menú Principal
+                </button>
+                <h2 style="text-align:center; margin: 20px 0; color: var(--primary);">¿Dónde supervisas hoy?</h2>
+                <button id="choice-acp" class="selection-card" onclick="showAcpForm()">
+                    <div class="card-icon">🏢</div>
+                    <div>
+                        <h3>Oficina Desconcentrada</h3>
+                        <p>Registro de supervisión en OD/MOD</p>
+                    </div>
+                </button>
+                <button id="choice-plan" class="selection-card" onclick="showPlanForm()">
+                    <div class="card-icon">📍</div>
+                    <div>
+                        <h3>Sede Central (Lima)</h3>
+                        <p>Supervisión en puntos de movilización</p>
+                    </div>
+                </button>
+
+                <!-- CAJA DE HERRAMIENTAS (Plegable) -->
+                <details class="toolkit-section"
+                    style="margin-top:20px; background:white; border-radius:15px; padding:10px; box-shadow:var(--shadow);">
+                    <summary style="cursor:pointer; font-weight:700; color:var(--primary); padding:5px;">📋 Documentos de Gestión</summary>
+                    <div id="toolkit-list" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                        <!-- Se llena con app.js -->
+                    </div>
+                </details>
+            </section>
+
+            <!-- SECCIÓN 2: FORMULARIOS -->
+            <section id="acp-section" class="card hidden">
+                <button class="back-link"
+                    style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; margin-bottom:15px;">⬅ Volver</button>
+                <h2>Supervisión OD/MOD</h2>
+                <form id="acp-form">
+                    <div class="form-group">
+                        <label>Fecha de la Supervisión</label>
+                        <input type="date" id="acp-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Turno</label>
+                        <select id="acp-turno" required>
+                            <option value="" disabled selected>Selecciona turno...</option>
+                            <option value="1er turno">1er turno</option>
+                            <option value="2do turno">2do turno</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre del Comisionado</label>
+                        <input type="text" id="acp-supervisor" placeholder="Tu nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Oficina (OD/MOD)</label>
+                        <select id="acp-office" required>
+                            <option value="" disabled selected>Selecciona oficina...</option>
+                            <option value="OD Amazonas">OD Amazonas</option>
+                            <option value="OD Áncash (Huaraz)">OD Áncash (Huaraz)</option>
+                            <option value="OD Apurímac">OD Apurímac</option>
+                            <option value="OD Arequipa">OD Arequipa</option>
+                            <option value="OD Ayacucho">OD Ayacucho</option>
+                            <option value="OD Cajamarca">OD Cajamarca</option>
+                            <option value="OD Callao">OD Callao</option>
+                            <option value="OD Cusco">OD Cusco</option>
+                            <option value="OD Huancavelica">OD Huancavelica</option>
+                            <option value="OD Huánuco">OD Huánuco</option>
+                            <option value="OD Ica">OD Ica</option>
+                            <option value="OD Junín">OD Junín</option>
+                            <option value="OD La Libertad">OD La Libertad</option>
+                            <option value="OD Lambayeque">OD Lambayeque</option>
+                            <option value="OD Loreto">OD Loreto</option>
+                            <option value="OD Madre de Dios">OD Madre de Dios</option>
+                            <option value="OD Moquegua">OD Moquegua</option>
+                            <option value="OD Pasco">OD Pasco</option>
+                            <option value="OD Piura">OD Piura</option>
+                            <option value="OD Puno">OD Puno</option>
+                            <option value="OD San Martín">OD San Martín</option>
+                            <option value="OD Tacna">OD Tacna</option>
+                            <option value="OD Tumbes">OD Tumbes</option>
+                            <option value="OD Ucayali">OD Ucayali</option>
+                            <option value="MOD Chimbote">MOD Chimbote</option>
+                            <option value="MOD Huacho">MOD Huacho</option>
+                            <option value="MOD Jaén">MOD Jaén</option>
+                            <option value="MOD Juliaca">MOD Juliaca</option>
+                            <option value="MOD La Merced">MOD La Merced</option>
+                            <option value="MOD Puquio">MOD Puquio</option>
+                            <option value="MOD Tarapoto">MOD Tarapoto</option>
+                            <option value="MOD Tingo María">MOD Tingo María</option>
+                            <option value="MOD Yurimaguas">MOD Yurimaguas</option>
+                            <option value="Administración / Otros">Administración / Otros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de Supervisión</label>
+                        <input type="text" id="nombre-supervision-od" placeholder="Escribe el nombre de la supervisión..."
+                            required>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría de Supervisión</label>
+                        <select id="acp-category" required>
+                            <option value="" disabled selected>Selecciona...</option>
+                            <option value="Espacio de movilización">Espacio de movilización</option>
+                            <option value="Dependencia policial / Seguridad del Estado">Dependencia policial / Seguridad del
+                                Estado</option>
+                            <option value="Establecimiento de salud">Establecimiento de salud</option>
+                            <option value="Videovigilancia">Videovigilancia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Punto de Supervisión (Texto Libre)</label>
+                        <input type="text" id="punto-od" list="sugerencias-od" placeholder="Escribe el lugar exacto..."
+                            required>
+                        <datalist id="sugerencias-od"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto Inicial de Supervisión</label>
+                        <input type="file" id="acp-photo" accept="image/*" capture="environment" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Iniciar Registro 🚀</button>
+                </form>
+            </section>
+
+            <section id="start-section" class="card hidden">
+                <button class="back-link"
+                    style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; margin-bottom:15px;">⬅ Volver</button>
+                <h2>Supervisión Lima</h2>
+                <form id="start-form">
+                    <div class="form-group">
+                        <label>Fecha de la Supervisión</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Turno</label>
+                        <select id="turno" required>
+                            <option value="" disabled selected>Selecciona turno...</option>
+                            <option value="1er turno">1er turno</option>
+                            <option value="2do turno">2do turno</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Oficina / Adjuntía</label>
+                        <select id="oficina-lima" class="form-select" required>
+                            <option value="">Selecciona oficina...</option>
+                            <option value="Adjuntía para la Prevención de Conflictos Sociales y la Gobernabilidad">Adjuntía
+                                para la Prevención de Conflictos Sociales</option>
+                            <option value="Adjuntía para los Derechos Humanos">Adjuntía para los Derechos Humanos</option>
+                            <option value="Programa de Casos">Programa de Casos</option>
+                            <option value="Oficina Defensorial de Lima">OD Lima</option>
+                            <option value="Oficina Defensorial de Lima Sur">OD Lima Sur</option>
+                            <option value="Oficina Defensorial de Lima Norte">OD Lima Norte</option>
+                            <option value="Oficina Defensorial de Lima Este">OD Lima Este</option>
+                            <option value="Oficina Defensorial del Callao">OD Callao</option>
+                            <option value="Sede Central - Administración">Sede Central - Administración</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre del Comisionado</label>
+                        <input type="text" id="name" placeholder="Tu nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de la Protesta</label>
+                        <input type="text" id="protest-name" list="protest-list-plan" placeholder="Colectivo o marcha..."
+                            required>
+                        <datalist id="protest-list-plan">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría de Supervisión</label>
+                        <select id="categoria-lima" required>
+                            <option value="" disabled selected>Selecciona...</option>
+                            <option value="Espacio de movilización">Espacio de movilización</option>
+                            <option value="Dependencia policial / Seguridad del Estado">Dependencia policial / Seguridad del
+                                Estado</option>
+                            <option value="Establecimiento de salud">Establecimiento de salud</option>
+                            <option value="Videovigilancia">Videovigilancia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Punto de Supervisión</label>
+                        <select id="punto-lima" required>
+                            <option value="">Selecciona categoría primero...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto Inicial de Supervisión</label>
+                        <input type="file" id="main-photo" accept="image/*" capture="environment" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Iniciar Supervisión 📍</button>
+                </form>
+            </section>
+
+            <!-- SECCIÓN 3: SESIÓN ACTIVA -->
+            <section id="active-section" class="card hidden" style="padding:0; overflow:hidden;">
+                <div
+                    style="background:var(--primary); color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:700;">🔵 EN VIVO</span>
+                    <div id="timer" style="font-family:monospace; font-size:1.2rem;">00:00:00</div>
+                </div>
+
+                <div id="minimapa-comisionado" style="height: 250px; width: 100%;"></div>
+
+                <div style="padding:15px;">
+                    <p style="font-size:0.9rem; margin-bottom:5px;"><strong>Punto:</strong> <span id="display-location"></span></p>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <p style="font-size:0.9rem; color:#666; margin:0;"><strong>GPS:</strong> <span id="display-start-geo">Obteniendo...</span></p>
+                        <span id="gps-quality-badge" style="font-size:0.72rem; font-weight:700; padding:2px 9px; border-radius:20px; background:#eee; color:#666;">📡 Esperando...</span>
+                    </div>
+                    <p id="gps-stale-warn" style="display:none; font-size:0.78rem; color:#e67e22; margin-top:5px; font-weight:600;">⚠️ GPS sin actualizar — verifica tu señal</p>
+                </div>
+
+                <!-- BOTÓN DE PÁNICO -->
+                <div style="padding:10px 15px; background:#fff3f3; border-top:2px solid #e74c3c; border-bottom:2px solid #e74c3c;">
+                    <button id="panic-btn" class="btn-primary" style="background:#c0392b; font-size:1rem; font-weight:800; letter-spacing:0.03em; padding:18px;">
+                        🆘 BOTÓN DE PÁNICO — EMERGENCIA INMEDIATA
+                    </button>
+                </div>
+
+                <div style="padding:15px; border-top:1px solid #eee;">
+                    <button id="add-incident-btn" class="btn-primary" style="background:#f39c12; margin-bottom:10px;">🚨
+                        Reportar Incidencia</button>
+                    <button id="add-update-btn" class="btn-primary" style="background:#3498db; margin-bottom:10px;">📝
+                        Enviar Actualización</button>
+                    <button id="view-docs-btn" class="btn-primary" style="background:#2c3e50; font-size:0.9rem;">📄 Ver
+                        Lineamientos</button>
+                </div>
+
+                <div id="incidents-timeline" class="timeline-container" style="height:350px;">
+                    <!-- Feed dinámico Estilo WhatsApp -->
+                </div>
+
+                <button id="finish-btn" class="btn-primary"
+                    style="background:#e74c3c; border-radius:0; margin-top:10px;">Finalizar Supervisión</button>
+            </section>
+
+            <section id="history-section" class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Mis Registros</h3>
+                    <button id="export-btn"
+                        style="padding:5px 10px; border-radius:5px; border:1px solid #ddd; background:none; cursor:pointer;">CSV</button>
+                </div>
+                <div id="history-list" style="margin-top:15px;"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- MODAL INCIDENCIAS -->
+    <div id="incident-modal" class="modal hidden-modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Nueva Incidencia</h3>
+            <div class="form-group" id="incident-class-group">
+                <label>Clasificación</label>
+                <select id="incident-class">
+                    <option value="Heridos">Heridos</option>
+                    <option value="Fallecidos">Fallecidos</option>
+                    <option value="Privados de la libertad">Privados de la libertad</option>
+                    <option value="Enfrentamientos">Enfrentamientos</option>
+                    <option value="Reporte de Situación" selected>Reporte de Situación</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Cantidad (Si aplica)</label>
+                <input type="number" id="incidencia-cantidad" placeholder="Cantidad (Ej. 5)" min="1">
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="incident-desc" rows="3" placeholder="¿Qué está pasando?"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Foto (Cámara)</label>
+                <input type="file" id="incident-photo" accept="image/*" capture="environment">
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button id="record-audio-btn" class="btn-primary" style="background:#2c3e50; font-size:0.8rem;">🎤
+                    Grabar Voz</button>
+                <button id="stop-audio-btn" class="btn-primary hidden" style="background:#c0392b; font-size:0.8rem;">🛑
+                    Parar</button>
+            </div>
+            <audio id="audio-preview" controls class="hidden" style="width:100%; margin-bottom:15px;"></audio>
+            <div style="display:flex; gap:10px;">
+                <button id="cancel-incident-btn" class="btn-primary" style="background:#95a5a6;">Cancelar</button>
+                <button id="save-incident-btn" class="btn-primary">Enviar ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DOCUMENTOS -->
+    <div id="docs-modal" class="modal hidden-modal">
+        <div class="modal-content">
+            <h3>Documentos de Gestión</h3>
+            <p style="margin-bottom:15px; color:#666;">Selecciona un documento para abrirlo:</p>
+            <div id="modal-docs-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
+            <button id="close-docs-btn" class="btn-primary" style="background:#95a5a6;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL WHATSAPP -->
+    <div id="wa-modal" class="modal hidden-modal">
+        <div class="modal-content">
+            <h3>📢 Alerta Crítica</h3>
+            <p style="margin-bottom:15px; color:#666;">¿A quién deseas notificar por WhatsApp?</p>
+            <select id="wa-contact-select" class="form-group" style="padding:12px;"></select>
+            <div style="display:flex; gap:10px;">
+                <button id="wa-cancel-btn" class="btn-primary" style="background:#95a5a6;">Omitir</button>
+                <button id="wa-send-btn" class="btn-primary">Enviar WhatsApp ✅</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+    <script src="firebase-config.js?v=3.0"></script>
+    <script src="offline.js?v=4.0"></script>
+    <script src="alertas.js?v=4.0"></script>
+    <script src="acciones.js?v=4.0"></script>
+    <script src="app.js?v=4.0"></script>
+</body>
+
+</html>

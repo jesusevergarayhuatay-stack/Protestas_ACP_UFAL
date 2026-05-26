@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablero - Defensoría del Pueblo</title>
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="style.css?v=3.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ===== DASHBOARD BASE ===== */
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        /* ===== HEADER RESPONSIVO ===== */
+        .header-content {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .header-controls input[type="date"],
+        .header-controls select {
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: none;
+            font-size: 0.85rem;
+            min-width: 0;
+        }
+        .header-controls select {
+            max-width: 160px;
+        }
+        .btn-header {
+            color: white;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        /* ===== STATS GRID RESPONSIVA ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        @media (min-width: 480px) {
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (min-width: 900px) {
+            .stats-grid { grid-template-columns: repeat(5, 1fr); }
+        }
+
+        /* ===== MAPA ===== */
+        .map-wrapper {
+            margin: 15px 0;
+            background: white;
+            padding: 10px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+        #map-dashboard {
+            height: 280px;
+            width: 100%;
+            border-radius: 15px;
+            z-index: 1;
+        }
+        @media (min-width: 768px) {
+            #map-dashboard { height: 420px; }
+        }
+        @media (min-width: 1024px) {
+            #map-dashboard { height: 500px; }
+        }
+
+        /* ===== PANEL INFERIOR: FEED + SUPERVISIONES ===== */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        @media (min-width: 1024px) {
+            .bottom-grid { grid-template-columns: 1fr 350px; }
+        }
+
+        /* ===== FEED ===== */
+        .feed-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 450px;
+        }
+        @media (min-width: 1024px) {
+            .feed-card { height: 800px; }
+        }
+        .feed-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        #global-feed {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #e5ddd5;
+        }
+
+        /* ===== SUPERVISIONES ===== */
+        .sessions-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            overflow-y: auto;
+            min-height: 300px;
+        }
+        @media (min-width: 1024px) {
+            .sessions-card { height: 800px; }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="main-header">
+        <div class="header-content" style="max-width: 1400px;">
+            <div class="logo-area">
+                <img src="logo.png" alt="Logo" class="header-logo">
+                <span>TABLERO DE SUPERVISIÓN</span>
+            </div>
+            <!-- BOTONERA RESPONSIVA: se envuelve en múltiples filas en móvil -->
+            <div class="header-controls">
+                <input type="date" id="filter-date">
+                <select id="filter-protest">
+                    <option value="all">Todas las protestas</option>
+                </select>
+                <button id="refresh-btn" class="btn-header" style="background:var(--accent);">🔄 Actualizar</button>
+                <button id="btn-generar-pdf" class="btn-header" style="background:#c0392b;">📄 Reporte PDF</button>
+                <button id="btn-descargar-csv" class="btn-header" style="background:#8e44ad;">📊 CSV</button>
+                <button id="sync-gsheets-btn" class="btn-header" style="background:#27ae60;">🔄 Sincronizar BI</button>
+                <button id="config-catalogos-btn" class="btn-header" style="background:#34495e;">⚙️ Configurar Catálogos</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Estadísticas -->
+        <section class="stats-grid">
+            <div class="stat-card"><h3>Activas</h3><span class="stat-value" id="stat-active" style="color:var(--success);">0</span></div>
+            <div class="stat-card"><h3>Incidencias</h3><span class="stat-value" id="stat-incidents" style="color:var(--accent);">0</span></div>
+            <div class="stat-card"><h3>Heridos</h3><span class="stat-value" id="stat-heridos" style="color:#e67e22;">0</span></div>
+            <div class="stat-card"><h3>Fallecidos</h3><span class="stat-value" id="stat-fallecidos" style="color:#c0392b;">0</span></div>
+            <div class="stat-card"><h3>Priv. Libertad</h3><span class="stat-value" id="stat-detenidos" style="color:#8e44ad;">0</span></div>
+        </section>
+
+        <!-- Mapa -->
+        <div class="map-wrapper">
+            <div id="map-dashboard"></div>
+        </div>
+
+        <!-- Feed + Supervisiones (apilados en móvil, lado a lado en desktop) -->
+        <div class="bottom-grid">
+            <!-- Feed (primero en el DOM = aparece primero en móvil) -->
+            <div class="feed-card">
+                <div class="feed-header">📡 Feed en Tiempo Real</div>
+                <div id="global-feed"></div>
+            </div>
+
+            <!-- Supervisiones -->
+            <div class="sessions-card">
+                <h2 id="list-title" style="font-size: 1.1rem; margin-top:0;">Supervisiones Hoy</h2>
+                <div id="loading" style="text-align:center; padding:40px; font-weight:700;">Cargando datos... ⏳</div>
+                <div id="reports-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL OBSERVACIONES PARA PDF -->
+    <div id="pdf-obs-modal" class="modal hidden-modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <h3 style="margin-bottom:15px;">📄 Generar Reporte PDF</h3>
+            <p style="font-size:0.88rem; color:#666; margin-bottom:12px;">Observaciones generales del turno (opcional):</p>
+            <textarea id="pdf-observaciones" rows="4" style="width:100%; padding:12px; border:1.5px solid #ddd; border-radius:8px; font-size:0.9rem; resize:vertical; margin-bottom:15px;" placeholder="Ej: Jornada transcurrió con normalidad. Se realizó coordinación con PNP..."></textarea>
+            <p style="font-size:0.88rem; color:#666; margin-bottom:12px;">Coordinador de turno:</p>
+            <input type="text" id="pdf-coordinador" style="width:100%; padding:10px 12px; border:1.5px solid #ddd; border-radius:8px; font-size:0.9rem; margin-bottom:20px;" placeholder="Nombre del coordinador">
+            <div style="display:flex; gap:10px;">
+                <button id="pdf-obs-cancel-btn" class="btn-primary" style="background:#95a5a6; flex:1;">Cancelar</button>
+                <button id="pdf-generar-btn" class="btn-primary" style="background:#c0392b; flex:2;">🖨️ Generar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GESTIÓN DE CATÁLOGOS -->
+    <div id="catalogos-modal" class="modal hidden-modal">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; color:var(--primary);">⚙️ Gestión de Catálogos</h2>
+                <button id="close-catalogos-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+
+            <div class="modal-grid" style="display:grid; grid-template-columns: 1fr; gap:20px;">
+                <!-- Sección Protestas -->
+                <div style="background:#f9f9f9; padding:15px; border-radius:12px; border:1px solid #eee;">
+                    <h3 style="margin-top:0; font-size:1rem;">Nombres de Protestas</h3>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="text" id="new-protest-name" placeholder="Nueva marcha/protesta..." style="flex:1; padding:8px; border-radius:6px; border:1px solid #ccc;">
+                        <button id="add-protest-btn" class="btn-primary" style="padding:8px 15px; width:auto;">Agregar</button>
+                    </div>
+                    <div id="protest-list-admin" style="max-height:200px; overflow-y:auto; background:white; border-radius:8px; border:1px solid #ddd;">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Sección Puntos de Supervisión -->
+                <div style="background:#f9f9f9; padding:15px; border-radius:12px; border:1px solid #eee;">
+                    <h3 style="margin-top:0; font-size:1rem;">Puntos de Supervisión</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr auto; gap:10px; margin-bottom:15px;">
+                        <select id="new-point-category" style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+                            <option value="Espacio de movilización">Espacio de movilización</option>
+                            <option value="Dependencia policial / Seguridad del Estado">Dependencia policial / Seguridad del Estado</option>
+                            <option value="Establecimiento de salud">Establecimiento de salud</option>
+                            <option value="Videovigilancia">Videovigilancia</option>
+                        </select>
+                        <input type="text" id="new-point-name" placeholder="Nombre del lugar..." style="padding:8px; border-radius:6px; border:1px solid #ccc;">
+                        <button id="add-point-btn" class="btn-primary" style="padding:8px 15px; width:auto;">Agregar</button>
+                    </div>
+                    <div id="points-list-admin" style="max-height:300px; overflow-y:auto; background:white; border-radius:8px; border:1px solid #ddd;">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+                <button id="save-catalogos-btn" class="btn-primary" style="background:var(--success); width:auto; padding:10px 30px;">Guardar Cambios ✅</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+    <script src="firebase-config.js?v=3.0"></script>
+    <!-- jsPDF para generación de reportes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="dashboard.js?v=4.0"></script>
+</body>
+
+</html>
