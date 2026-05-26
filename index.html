@@ -39,7 +39,7 @@
         
         <div class="row g-3">
             <div class="col-12">
-                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-alertas" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #ffc107 !important;">
+                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-alertas" onclick="goToAlertas()" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #ffc107 !important;">
                     <div class="d-flex align-items-center">
                         <div class="fs-1 me-3">🚨</div>
                         <div>
@@ -51,7 +51,7 @@
             </div>
             
             <div class="col-12">
-                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-acciones" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #0dcaf0 !important;">
+                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-acciones" onclick="goToAcciones()" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #0dcaf0 !important;">
                     <div class="d-flex align-items-center">
                         <div class="fs-1 me-3">🤝</div>
                         <div>
@@ -63,7 +63,7 @@
             </div>
             
             <div class="col-12">
-                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-supervision" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #003366 !important;">
+                <div class="card border-0 shadow-sm p-3 menu-card" id="btn-modulo-supervision" onclick="openModule('modulo-supervision')" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; border-left: 5px solid #003366 !important;">
                     <div class="d-flex align-items-center">
                         <div class="fs-1 me-3">📋</div>
                         <div>
@@ -88,7 +88,7 @@
                     <button class="back-to-menu-btn btn-back-modulo">⬅ Menú</button>
                     <div class="modulo-title-area">
                         <h2 class="modulo-title">🚨 Registro de Alertas</h2>
-                        <button id="nueva-alerta-btn" class="btn-nuevo-registro">+ Nueva Alerta</button>
+                        <button id="nueva-alerta-btn" class="btn-nuevo-registro" onclick="openAlertaForm()">+ Nueva Alerta</button>
                     </div>
                 </div>
                 <div id="alertas-records-list" class="records-list">
@@ -217,9 +217,9 @@
                             <div id="alerta-dropzone" class="dropzone">
                                 <span class="dropzone-icon">☁️</span>
                                 <p>Arrastra y suelta archivos, o <strong>haz clic para seleccionar</strong>.</p>
-                                <p class="dropzone-hint">PDF, PNG, JPG, etc.</p>
+                                <p class="dropzone-hint">Fotos, Videos, PDF, Word — desde cámara o galería</p>
                             </div>
-                            <input type="file" id="alerta-file-input" multiple accept="image/*,.pdf,.doc,.docx" style="display:none;">
+                            <input type="file" id="alerta-file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx" style="display:none;">
                             <div id="alerta-docs-list" class="docs-list"></div>
                         </div>
 
@@ -239,7 +239,7 @@
                     <button class="back-to-menu-btn btn-back-modulo">⬅ Menú</button>
                     <div class="modulo-title-area">
                         <h2 class="modulo-title">🤝 Acciones Colectivas de Protesta</h2>
-                        <button id="nueva-acp-btn" class="btn-nuevo-registro">+ Nueva ACP</button>
+                        <button id="nueva-acp-btn" class="btn-nuevo-registro" onclick="openAcpForm()">+ Nueva ACP</button>
                     </div>
                 </div>
                 <div id="acp-records-list" class="records-list">
@@ -399,9 +399,9 @@
                             <div id="acp-dropzone" class="dropzone">
                                 <span class="dropzone-icon">☁️</span>
                                 <p>Arrastra y suelta archivos, o <strong>haz clic para seleccionar</strong>.</p>
-                                <p class="dropzone-hint">PDF, PNG, JPG, etc.</p>
+                                <p class="dropzone-hint">Fotos, Videos, PDF, Word — desde cámara o galería</p>
                             </div>
-                            <input type="file" id="acp-file-input" multiple accept="image/*,.pdf,.doc,.docx" style="display:none;">
+                            <input type="file" id="acp-file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx" style="display:none;">
                             <div id="acp-docs-list" class="docs-list"></div>
                         </div>
 
@@ -529,7 +529,14 @@
                     </div>
                     <div class="form-group">
                         <label>Foto Inicial de Supervisión</label>
-                        <input type="file" id="acp-photo" accept="image/*" capture="environment" required>
+                        <div style="display:flex;gap:8px;margin-bottom:6px;">
+                            <button type="button" onclick="document.getElementById('acp-photo-cam').click()" class="btn-primary" style="flex:1;padding:9px;font-size:0.85rem;background:#2c3e50;">📷 Tomar Foto</button>
+                            <button type="button" onclick="document.getElementById('acp-photo-gal').click()" class="btn-primary" style="flex:1;padding:9px;font-size:0.85rem;background:#8e44ad;">🖼️ Desde Galería</button>
+                        </div>
+                        <input type="file" id="acp-photo-cam" accept="image/*" capture="environment" style="display:none;" onchange="syncPhotoInput(this,'acp-photo','acp-photo-preview')">
+                        <input type="file" id="acp-photo-gal" accept="image/*" style="display:none;" onchange="syncPhotoInput(this,'acp-photo','acp-photo-preview')">
+                        <input type="file" id="acp-photo" accept="image/*" style="display:none;" required>
+                        <div id="acp-photo-preview" style="margin-top:6px;"></div>
                     </div>
                     <button type="submit" class="btn-primary">Iniciar Registro 🚀</button>
                 </form>
@@ -598,7 +605,14 @@
                     </div>
                     <div class="form-group">
                         <label>Foto Inicial de Supervisión</label>
-                        <input type="file" id="main-photo" accept="image/*" capture="environment" required>
+                        <div style="display:flex;gap:8px;margin-bottom:6px;">
+                            <button type="button" onclick="document.getElementById('main-photo-cam').click()" class="btn-primary" style="flex:1;padding:9px;font-size:0.85rem;background:#2c3e50;">📷 Tomar Foto</button>
+                            <button type="button" onclick="document.getElementById('main-photo-gal').click()" class="btn-primary" style="flex:1;padding:9px;font-size:0.85rem;background:#8e44ad;">🖼️ Desde Galería</button>
+                        </div>
+                        <input type="file" id="main-photo-cam" accept="image/*" capture="environment" style="display:none;" onchange="syncPhotoInput(this,'main-photo','main-photo-preview')">
+                        <input type="file" id="main-photo-gal" accept="image/*" style="display:none;" onchange="syncPhotoInput(this,'main-photo','main-photo-preview')">
+                        <input type="file" id="main-photo" accept="image/*" style="display:none;" required>
+                        <div id="main-photo-preview" style="margin-top:6px;"></div>
                     </div>
                     <button type="submit" class="btn-primary">Iniciar Supervisión 📍</button>
                 </form>
@@ -681,30 +695,29 @@
                 <textarea id="incident-desc" rows="3" placeholder="¿Qué está pasando?"></textarea>
             </div>
             <div class="form-group">
-                <label>Foto (Cámara)</label>
-                <input type="file" id="incident-photo" accept="image/*" capture="environment">
+                <label>Fotos / Video (múltiples)</label>
+                <div style="display:flex;gap:8px;margin-bottom:6px;">
+                    <button type="button" onclick="document.getElementById('incident-photo-cam').click()" class="btn-primary" style="flex:1;padding:8px;font-size:0.82rem;background:#2c3e50;">📷 Cámara</button>
+                    <button type="button" onclick="document.getElementById('incident-photo-gal').click()" class="btn-primary" style="flex:1;padding:8px;font-size:0.82rem;background:#8e44ad;">🖼️ Galería</button>
+                    <button type="button" onclick="document.getElementById('incident-photo-cam').click()" class="btn-primary" style="flex:1;padding:8px;font-size:0.82rem;background:#2c3e50;">📷 Cámara</button>
+                    <button type="button" onclick="document.getElementById('incident-photo-gal').click()" class="btn-primary" style="flex:1;padding:8px;font-size:0.82rem;background:#8e44ad;">🖼️ Galería</button>
+                    <button type="button" onclick="document.getElementById('incident-video-cam').click()" class="btn-primary" style="flex:1;padding:8px;font-size:0.82rem;background:#c0392b;">🎥 Video</button>
+                </div>
+                <input type="file" id="incident-photo-cam" accept="image/*" capture="environment" multiple style="display:none;" onchange="addIncidentFiles(this.files)">
+                <input type="file" id="incident-photo-gal" accept="image/*,video/*" multiple style="display:none;" onchange="addIncidentFiles(this.files)">
+                <input type="file" id="incident-video-cam" accept="video/*" capture="environment" style="display:none;" onchange="addIncidentFiles(this.files)">
+                <input type="file" id="incident-photo" accept="image/*,video/*" multiple style="display:none;">
+                <div id="incident-media-preview" style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
             <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <button id="record-audio-btn" class="btn-primary" style="background:#2c3e50; font-size:0.8rem;">🎤
-                    Grabar Voz</button>
-                <button id="stop-audio-btn" class="btn-primary hidden" style="background:#c0392b; font-size:0.8rem;">🛑
-                    Parar</button>
+                <button id="record-audio-btn" class="btn-primary" style="background:#2c3e50; font-size:0.8rem;">🎤 Grabar Voz</button>
+                <button id="stop-audio-btn" class="btn-primary hidden" style="background:#c0392b; font-size:0.8rem;">🛑 Parar</button>
             </div>
             <audio id="audio-preview" controls class="hidden" style="width:100%; margin-bottom:15px;"></audio>
             <div style="display:flex; gap:10px;">
                 <button id="cancel-incident-btn" class="btn-primary" style="background:#95a5a6;">Cancelar</button>
                 <button id="save-incident-btn" class="btn-primary">Enviar ➡️</button>
             </div>
-        </div>
-    </div>
-
-    <!-- MODAL DOCUMENTOS -->
-    <div id="docs-modal" class="modal hidden-modal">
-        <div class="modal-content">
-            <h3>Documentos de Gestión</h3>
-            <p style="margin-bottom:15px; color:#666;">Selecciona un documento para abrirlo:</p>
-            <div id="modal-docs-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;"></div>
-            <button id="close-docs-btn" class="btn-primary" style="background:#95a5a6;">Cerrar</button>
         </div>
     </div>
 
@@ -731,5 +744,4 @@
     <script src="acciones.js?v=4.0"></script>
     <script src="app.js?v=4.0"></script>
 </body>
-
 </html>

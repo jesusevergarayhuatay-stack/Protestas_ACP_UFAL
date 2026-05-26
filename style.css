@@ -124,7 +124,7 @@ input:focus { border-color: var(--primary); outline: none; }
     background: white; width: 100%; max-width: 600px; padding: 25px; 
     border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
 }
-.hidden-modal { visibility: hidden; opacity: 0; }
+.hidden-modal { visibility: hidden; opacity: 0; pointer-events: none; }
 .hidden-modal .modal-content { transform: translateY(100%); }
 
 /* === DASHBOARD ADMIN === */

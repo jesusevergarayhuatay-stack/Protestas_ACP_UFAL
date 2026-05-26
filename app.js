@@ -5,6 +5,7 @@ const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbz9GbqHfoAQar
 let activeSession = null;
 let history = [];
 let waContacts = [];
+let incidentMediaFiles = []; // Array de { file, previewUrl, type }
 let timerInterval = null;
 let locationWatchId = null;
 let minimap = null;
@@ -58,6 +59,81 @@ function compressImage(file, maxPx = 1200, quality = 0.75) {
         img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
         img.src = url;
     });
+}
+
+// =============================================
+// FOTO INICIO: CÁMARA O GALERÍA
+// Sincroniza el input auxiliar (cam/gal) con el input real del formulario
+// y muestra un thumbnail de previsualización
+// =============================================
+function syncPhotoInput(sourceInput, targetId, previewId) {
+    const file = sourceInput.files[0];
+    if (!file) return;
+
+    // Copiar el file al input real usando DataTransfer
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    const target = document.getElementById(targetId);
+    if (target) target.files = dt.files;
+
+    // Mostrar preview
+    const preview = document.getElementById(previewId);
+    if (preview) {
+        const url = URL.createObjectURL(file);
+        preview.innerHTML = `<img src="${url}" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:2px solid var(--primary);" alt="Vista previa">`;
+    }
+}
+
+// =============================================
+// MEDIA DE INCIDENCIAS (múltiples fotos + video)
+// =============================================
+function addIncidentFiles(files) {
+    Array.from(files).forEach(file => {
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+        if (isVideo && file.size > 200 * 1024 * 1024) {
+            alert(`"${file.name}" supera los 200 MB. Selecciona un video más corto.`);
+            return;
+        }
+        const previewUrl = (isImage || isVideo) ? URL.createObjectURL(file) : null;
+        incidentMediaFiles.push({ file, previewUrl, type: file.type });
+    });
+    renderIncidentMediaPreview();
+}
+
+function renderIncidentMediaPreview() {
+    const container = document.getElementById('incident-media-preview');
+    if (!container) return;
+    container.innerHTML = incidentMediaFiles.map((m, idx) => {
+        const isImage = m.type.startsWith('image/');
+        const isVideo = m.type.startsWith('video/');
+        const thumb = isImage
+            ? `<img src="${m.previewUrl}" style="width:64px;height:50px;object-fit:cover;border-radius:6px;">`
+            : isVideo
+            ? `<video src="${m.previewUrl}" style="width:64px;height:50px;object-fit:cover;border-radius:6px;" muted playsinline></video>`
+            : `<span style="font-size:1.5rem;">📎</span>`;
+        return `<div style="position:relative;display:inline-block;">
+            ${thumb}
+            <button type="button" onclick="removeIncidentFile(${idx})" style="position:absolute;top:-4px;right:-4px;background:#e74c3c;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:0.7rem;cursor:pointer;line-height:18px;padding:0;">✕</button>
+        </div>`;
+    }).join('');
+    // Mostrar contador
+    const label = document.querySelector('#incident-media-preview')?.previousElementSibling;
+    const countEl = document.getElementById('incident-media-count');
+    if (!countEl && incidentMediaFiles.length > 0) {
+        const div = document.createElement('small');
+        div.id = 'incident-media-count';
+        div.style.cssText = 'color:#666;display:block;margin-bottom:4px;';
+        container.before(div);
+    }
+    const c = document.getElementById('incident-media-count');
+    if (c) c.textContent = incidentMediaFiles.length > 0 ? `${incidentMediaFiles.length} archivo(s) adjunto(s)` : '';
+}
+
+function removeIncidentFile(idx) {
+    if (incidentMediaFiles[idx]?.previewUrl) URL.revokeObjectURL(incidentMediaFiles[idx].previewUrl);
+    incidentMediaFiles.splice(idx, 1);
+    renderIncidentMediaPreview();
 }
 
 // =============================================
@@ -230,6 +306,23 @@ function showAcpForm() { showSection('acp-section'); }
 function showPlanForm() { showSection('start-section'); }
 
 // --- NAVEGACIÓN MÚLTIPLES MÓDULOS (v3.0) ---
+let _alertasModuleInited = false;
+let _acpModuleInited = false;
+
+function goToAlertas() {
+    openModule('modulo-alertas');
+    if (!_alertasModuleInited) {
+        if (typeof initAlertasModule === 'function') { initAlertasModule(); _alertasModuleInited = true; }
+    }
+}
+
+function goToAcciones() {
+    openModule('modulo-acciones');
+    if (!_acpModuleInited) {
+        if (typeof initAcpModule === 'function') { initAcpModule(); _acpModuleInited = true; }
+    }
+}
+
 function openModule(moduleId) {
     // Ocultar menú principal
     document.getElementById('main-menu')?.classList.add('d-none');
@@ -331,23 +424,8 @@ function init() {
     initFirebaseCatalogos();
 
     // Listeners del Menú Principal (v4.0)
-    let alertasModuleInited = false;
-    let acpModuleInited = false;
-
-    document.getElementById('btn-modulo-alertas')?.addEventListener('click', () => {
-        openModule('modulo-alertas');
-        if (!alertasModuleInited) {
-            initAlertasModule();
-            alertasModuleInited = true;
-        }
-    });
-    document.getElementById('btn-modulo-acciones')?.addEventListener('click', () => {
-        openModule('modulo-acciones');
-        if (!acpModuleInited) {
-            initAcpModule();
-            acpModuleInited = true;
-        }
-    });
+    document.getElementById('btn-modulo-alertas')?.addEventListener('click', goToAlertas);
+    document.getElementById('btn-modulo-acciones')?.addEventListener('click', goToAcciones);
     document.getElementById('btn-modulo-supervision')?.addEventListener('click', () => openModule('modulo-supervision'));
 
     // Botones Volver
@@ -815,12 +893,27 @@ saveIncidentBtn?.addEventListener('click', async () => {
     };
 
     try {
-        const photoRaw = document.getElementById('incident-photo').files[0];
-        const photo = photoRaw ? await compressImage(photoRaw, 1200, 0.80) : null;
-        if (photo && _fbStorage) {
-            const ref = _fbStorage.ref('incidents/' + activeSession.sessionId + '/' + Date.now());
-            await ref.put(photo);
-            inc.imageUrl = await ref.getDownloadURL();
+        // === SUBIR MÚLTIPLES ARCHIVOS (fotos + videos) ===
+        if (incidentMediaFiles.length > 0 && _fbStorage) {
+            const mediaUrls = [];
+            for (const m of incidentMediaFiles) {
+                try {
+                    let fileToUpload = m.file;
+                    if (m.type.startsWith('image/')) {
+                        fileToUpload = await compressImage(m.file, 1200, 0.80);
+                    }
+                    const ref = _fbStorage.ref('incidents/' + activeSession.sessionId + '/' + Date.now() + '_' + m.file.name);
+                    await ref.put(fileToUpload);
+                    const url = await ref.getDownloadURL();
+                    mediaUrls.push({ url, type: m.type, name: m.file.name });
+                } catch (e) { /* continuar con el siguiente */ }
+            }
+            if (mediaUrls.length > 0) {
+                // Compatibilidad: el primer archivo de imagen va también en imageUrl
+                const firstImg = mediaUrls.find(u => u.type.startsWith('image/'));
+                if (firstImg) inc.imageUrl = firstImg.url;
+                inc.mediaUrls = mediaUrls; // array completo con fotos y videos
+            }
         }
         if (audioBlob && _fbStorage) {
             const ref = _fbStorage.ref('incidents/' + activeSession.sessionId + '/' + Date.now() + '.webm');
@@ -868,6 +961,13 @@ function resetIncidentForm() {
     document.getElementById('incident-desc').value = "";
     document.getElementById('incidencia-cantidad').value = "";
     document.getElementById('incident-photo').value = "";
+    // Limpiar archivos multimedia
+    incidentMediaFiles.forEach(m => { if (m.previewUrl) URL.revokeObjectURL(m.previewUrl); });
+    incidentMediaFiles = [];
+    renderIncidentMediaPreview();
+    ['incident-photo-cam','incident-photo-gal','incident-video-cam'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+    });
     audioBlob = null;
     document.getElementById('audio-preview').classList.add('hidden');
 }
@@ -923,7 +1023,6 @@ document.getElementById('finish-btn')?.addEventListener('click', async () => {
     localStorage.removeItem('dp_active_session');
 
     const sRef = fbRef('sessions/' + activeSession.sessionId);
-    // Resetear alertaActiva al finalizar
     if (sRef) await sRef.update({ status: 'finished', endTime: activeSession.endTime, alertaActiva: false });
 
     syncWithCloud('finish', activeSession);
@@ -956,5 +1055,14 @@ function exportData() {
     const a = document.createElement('a');
     a.href = url; a.download = 'reporte.csv'; a.click();
 }
+
+// Exponer funciones de navegación para onclick en HTML
+window.openModule = openModule;
+window.goToAlertas = goToAlertas;
+window.goToAcciones = goToAcciones;
+window.showMainMenu = showMainMenu;
+window.adminLogin = adminLogin;
+window.showAcpForm = showAcpForm;
+window.showPlanForm = showPlanForm;
 
 init();

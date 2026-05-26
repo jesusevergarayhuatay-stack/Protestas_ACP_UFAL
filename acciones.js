@@ -232,8 +232,13 @@ async function uploadAcpDocumentos() {
         if (doc.url) { results.push(doc); continue; }
         if (doc.file && _fbStorage) {
             try {
+                // Comprimir solo imágenes; videos y docs se suben tal cual
+                let fileToUpload = doc.file;
+                if (doc.type?.startsWith('image/')) {
+                    fileToUpload = await compressImage(doc.file);
+                }
                 const ref = _fbStorage.ref('acp_docs/' + Date.now() + '_' + doc.name);
-                await ref.put(doc.file);
+                await ref.put(fileToUpload);
                 const url = await ref.getDownloadURL();
                 results.push({ name: doc.name, url, type: doc.type });
             } catch (e) {
@@ -366,7 +371,14 @@ function renderPersonasList(type, list) {
 
 function handleFilesAcp(files) {
     Array.from(files).forEach(file => {
-        acpDocumentos.push({ name: file.name, type: file.type, file, url: '' });
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+        if (isVideo && file.size > 200 * 1024 * 1024) {
+            alert(`"${file.name}" supera los 200 MB. Selecciona un video más corto.`);
+            return;
+        }
+        const previewUrl = (isImage || isVideo) ? URL.createObjectURL(file) : null;
+        acpDocumentos.push({ name: file.name, type: file.type, file, url: '', previewUrl });
     });
     renderDocumentosList('acp', acpDocumentos);
 }
@@ -377,3 +389,5 @@ window.deleteAcp = deleteAcp;
 window.addPersonaRow = addPersonaRow;
 window.removePersona = removePersona;
 window.updatePersona = updatePersona;
+window.openAcpForm = openAcpForm;
+window.initAcpModule = initAcpModule;

@@ -271,8 +271,13 @@ async function uploadAlertaDocumentos() {
         if (doc.url) { results.push(doc); continue; } // ya subido
         if (doc.file && _fbStorage) {
             try {
+                // Comprimir solo imágenes; videos y docs se suben tal cual
+                let fileToUpload = doc.file;
+                if (doc.type?.startsWith('image/')) {
+                    fileToUpload = await compressImage(doc.file);
+                }
                 const ref = _fbStorage.ref('alertas_docs/' + Date.now() + '_' + doc.name);
-                await ref.put(doc.file);
+                await ref.put(fileToUpload);
                 const url = await ref.getDownloadURL();
                 results.push({ name: doc.name, url, type: doc.type });
             } catch (e) {
@@ -443,7 +448,14 @@ function removeActor(formPrefix, idx) {
 // --- DOCUMENTOS (Drag & Drop) ---
 function handleFilesAlerta(files) {
     Array.from(files).forEach(file => {
-        alertasDocumentos.push({ name: file.name, type: file.type, file, url: '' });
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+        if (isVideo && file.size > 200 * 1024 * 1024) {
+            alert(`"${file.name}" supera los 200 MB. Selecciona un video más corto.`);
+            return;
+        }
+        const previewUrl = (isImage || isVideo) ? URL.createObjectURL(file) : null;
+        alertasDocumentos.push({ name: file.name, type: file.type, file, url: '', previewUrl });
     });
     renderDocumentosList('alerta', alertasDocumentos);
 }
@@ -451,18 +463,32 @@ function handleFilesAlerta(files) {
 function renderDocumentosList(formPrefix, list) {
     const container = document.getElementById(formPrefix + '-docs-list');
     if (!container) return;
-    container.innerHTML = list.map((doc, idx) => `
-        <div class="doc-item">
-            <span class="doc-icon">${getDocIcon(doc.type)}</span>
-            <span class="doc-name">${doc.name}</span>
+    container.innerHTML = list.map((doc, idx) => {
+        const isImage = doc.type?.startsWith('image/');
+        const isVideo = doc.type?.startsWith('video/');
+        let previewHtml = '';
+        if (isImage && doc.previewUrl) {
+            previewHtml = `<img src="${doc.previewUrl}" style="width:56px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;">`;
+        } else if (isVideo && doc.previewUrl) {
+            previewHtml = `<video src="${doc.previewUrl}" style="width:56px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;" muted playsinline></video>`;
+        } else {
+            previewHtml = `<span class="doc-icon" style="font-size:1.5rem;flex-shrink:0;">${getDocIcon(doc.type)}</span>`;
+        }
+        const size = doc.file ? (doc.file.size > 1024*1024 ? (doc.file.size/1024/1024).toFixed(1)+' MB' : (doc.file.size/1024).toFixed(0)+' KB') : '';
+        return `
+        <div class="doc-item" style="align-items:center;">
+            ${previewHtml}
+            <span class="doc-name" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${doc.name}<br><small style="color:#999;">${size}</small></span>
             ${doc.url ? `<a href="${doc.url}" target="_blank" class="doc-link">Ver</a>` : '<span class="doc-pending">Pendiente</span>'}
             <button class="btn-delete-row" onclick="removeDoc('${formPrefix}', ${idx})">✕</button>
-        </div>`).join('') || '';
+        </div>`;
+    }).join('') || '';
 }
 
 function getDocIcon(type) {
     if (type?.includes('pdf')) return '📄';
     if (type?.includes('image')) return '🖼️';
+    if (type?.includes('video')) return '🎥';
     if (type?.includes('word') || type?.includes('document')) return '📝';
     return '📎';
 }
@@ -517,8 +543,7 @@ function openConflictoSearch(formPrefix) {
         if (idx >= 0 && idx < options.length) {
             const [id, conflicto] = options[idx];
             if (formPrefix === 'alerta') window._alertaConflictoVinculado = { id, nombre: conflicto.nombre };
-            else window._acpConflictoVinculado = { id, nombre: conflicto.nombre };
-            renderConflictoVinculado(formPrefix, { id, nombre: conflicto.nombre });
+            else window._acpConflictoVinculado = { id, nombre: conflicto.nombre }
         }
     });
 }
@@ -560,3 +585,5 @@ window.removeDoc = removeDoc;
 window.calcularNivelRiesgo = calcularNivelRiesgo;
 window.openConflictoSearch = openConflictoSearch;
 window.unlinkConflicto = unlinkConflicto;
+window.openAlertaForm = openAlertaForm;
+window.initAlertasModule = initAlertasModule;
