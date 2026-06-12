@@ -981,18 +981,20 @@
             <h3 id="modal-title">Nueva Incidencia</h3>
                 <div class="form-group" id="incident-class-group">
                     <label style="font-size:0.82rem; font-weight:600; color:#555;">Clasificación</label>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <select id="incident-class" class="form-input" style="flex:1;">
-                            <option value="Tensión">⚡ Tensión</option>
-                            <option value="Bloqueo">🚧 Bloqueo</option>
-                            <option value="Enfrentamiento">⚔️ Enfrentamiento</option>
-                            <option value="Heridos">🟠 Heridos</option>
-                            <option value="Fallecidos">🔴 Fallecidos</option>
-                            <option value="Privados de la libertad">🟣 Privados de la libertad</option>
-                            <option value="Otro">📌 Otro</option>
-                        </select>
-                        <input type="number" id="incidencia-cantidad" min="0" placeholder="Cant." class="form-input" style="width:75px;">
-                    </div>
+                    <select id="incident-class" class="form-input">
+                        <option value="Tensión">⚡ Tensión</option>
+                        <option value="Bloqueo">🚧 Bloqueo</option>
+                        <option value="Enfrentamiento">⚔️ Enfrentamiento</option>
+                        <option value="Heridos">🟠 Heridos</option>
+                        <option value="Fallecidos">🔴 Fallecidos</option>
+                        <option value="Privados de la libertad">🟣 Privados de la libertad</option>
+                        <option value="Otro">📌 Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size:0.82rem; font-weight:600; color:#555;">Cantidad afectada</label>
+                    <input type="number" id="incidencia-cantidad" min="0" placeholder="Ej: 5" class="form-input">
                 </div>
 
                 <div class="form-group">
@@ -1046,7 +1048,7 @@
             <p style="font-size:0.85rem; color:#555; margin-bottom:10px;">Selecciona el contacto de emergencia a notificar:</p>
             <select id="wa-contact-select" class="form-input" style="margin-bottom:12px;"></select>
             <div style="display:flex; gap:8px;">
-                <button type="button" id="wa-cancel-btn" class="btn-primary" style="flex:1; background:#95a5a6;">Cancelar</button>
+                <button type="button" id="wa-cancel-btn" class="btn-primary" style="flex:1; background:#95a5a6;">Omitir</button>
                 <button type="button" id="wa-send-btn" class="btn-primary" style="flex:2; background:#25D366;">📲 Enviar WhatsApp</button>
             </div>
         </div>
