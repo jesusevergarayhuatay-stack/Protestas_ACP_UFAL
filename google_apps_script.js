@@ -126,7 +126,7 @@ function doPost(e) {
 
         var idxSession = getColIndex(["SessionID", "ID", "ID Supervision"]);
         var idxFin = getColIndex(["Fin", "Hora Fin"]);
-        var idxDuracion = getColIndex(["Duracion", "Duración"]);
+        var idxDuracion = getColIndex(["Duracion", "Duración", "Duración (h)", "Duracion (h)"]);
         var idxObs = getColIndex(["Observaciones", "Obs"]);
 
         // --- ACCIÓN: AGREGAR ITEM A LISTA (NUEVO) ---

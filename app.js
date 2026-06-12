@@ -885,11 +885,15 @@ saveIncidentBtn?.addEventListener('click', async () => {
 
     const inc = {
         timestamp: Date.now(),
+        time: formatAMPM(new Date()),
+        tipoRegistro: document.getElementById('modal-title')?.textContent?.includes('Actualización') ? 'Actualización' : 'Incidencia',
         clasificacion: category,
         cantidad: qty,
         description: finalDesc,
         author: activeSession.name,
-        office: activeSession.office
+        office: activeSession.office,
+        lat: activeSession.currentLat || '',
+        lng: activeSession.currentLng || ''
     };
 
     try {
@@ -942,7 +946,12 @@ saveIncidentBtn?.addEventListener('click', async () => {
             }
         }
 
-        syncWithCloud('incident', activeSession, { new_incident: inc });
+        syncWithCloud('incident', {
+            sessionId: activeSession.sessionId,
+            fecha: activeSession.fecha,
+            supervisor: activeSession.name,
+            oficina: activeSession.office
+        }, { new_incident: inc });
 
         if (isCritical) {
             openWaModal(inc);
@@ -1025,7 +1034,15 @@ document.getElementById('finish-btn')?.addEventListener('click', async () => {
     const sRef = fbRef('sessions/' + activeSession.sessionId);
     if (sRef) await sRef.update({ status: 'finished', endTime: activeSession.endTime, alertaActiva: false });
 
-    syncWithCloud('finish', activeSession);
+    const duracionMs = activeSession.endTime - activeSession.startTime;
+    const duracionMin = Math.round(duracionMs / 60000);
+    const finStr = formatAMPM(new Date(activeSession.endTime));
+    syncWithCloud('finish', {
+        sessionId: activeSession.sessionId,
+        fin: finStr,
+        duracion: duracionMin + ' min',
+        observaciones: activeSession.observaciones || ''
+    });
     location.reload();
 });
 
