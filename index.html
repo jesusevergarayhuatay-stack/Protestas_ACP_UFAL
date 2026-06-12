@@ -981,5 +981,91 @@
     <div id="incident-modal" class="modal hidden-modal">
         <div class="modal-content">
             <h3 id="modal-title">Nueva Incidencia</h3>
-            <div class="form-group" id="incident-class-group">
-                <label>Clasif
+                <div class="form-group" id="incident-class-group">
+                    <label style="font-size:0.82rem; font-weight:600; color:#555;">Clasificación</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <select id="incident-class" class="form-input" style="flex:1;">
+                            <option value="Tensión">⚡ Tensión</option>
+                            <option value="Bloqueo">🚧 Bloqueo</option>
+                            <option value="Enfrentamiento">⚔️ Enfrentamiento</option>
+                            <option value="Heridos">🟠 Heridos</option>
+                            <option value="Fallecidos">🔴 Fallecidos</option>
+                            <option value="Privados de la libertad">🟣 Privados de la libertad</option>
+                            <option value="Otro">📌 Otro</option>
+                        </select>
+                        <input type="number" id="incidencia-cantidad" min="0" placeholder="Cant." class="form-input" style="width:75px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size:0.82rem; font-weight:600; color:#555;">Descripción *</label>
+                    <textarea id="incident-desc" rows="3" class="form-input" placeholder="Describe el suceso con detalle..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size:0.82rem; font-weight:600; color:#555;">Adjuntar fotos / videos</label>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                        <label style="flex:1; min-width:90px; text-align:center; padding:10px 6px; border:1px dashed #aaa; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+                            📁 Archivo
+                            <input type="file" id="incident-photo" accept="image/*,video/*" multiple style="display:none;">
+                        </label>
+                        <label style="flex:1; min-width:90px; text-align:center; padding:10px 6px; border:1px dashed #aaa; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+                            📷 Cámara
+                            <input type="file" id="incident-photo-cam" accept="image/*" capture="environment" style="display:none;">
+                        </label>
+                        <label style="flex:1; min-width:90px; text-align:center; padding:10px 6px; border:1px dashed #aaa; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+                            🖼️ Galería
+                            <input type="file" id="incident-photo-gal" accept="image/*" multiple style="display:none;">
+                        </label>
+                        <label style="flex:1; min-width:90px; text-align:center; padding:10px 6px; border:1px dashed #aaa; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+                            🎥 Video
+                            <input type="file" id="incident-video-cam" accept="video/*" capture="environment" style="display:none;">
+                        </label>
+                    </div>
+                    <div id="incident-media-preview" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-size:0.82rem; font-weight:600; color:#555;">Nota de voz</label>
+                    <div style="display:flex; gap:8px; margin-top:4px; align-items:center;">
+                        <button type="button" id="record-audio-btn" class="btn-primary" style="background:#e74c3c; padding:8px 14px; font-size:0.82rem;">🎙️ Grabar</button>
+                        <button type="button" id="stop-audio-btn" class="btn-primary hidden" style="background:#7f8c8d; padding:8px 14px; font-size:0.82rem;">⏹️ Detener</button>
+                        <audio id="audio-preview" controls class="hidden" style="flex:1; height:35px;"></audio>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button type="button" id="cancel-incident-btn" class="btn-primary" style="flex:1; background:#95a5a6;">Cancelar</button>
+                    <button type="button" id="save-incident-btn" class="btn-primary" style="flex:2;">Enviar ➡️</button>
+                </div>
+        </div>
+    </div>
+
+    <!-- MODAL WHATSAPP -->
+    <div id="wa-modal" class="modal hidden-modal">
+        <div class="modal-content">
+            <h3>📲 Notificar por WhatsApp</h3>
+            <p style="font-size:0.85rem; color:#555; margin-bottom:10px;">Selecciona el contacto de emergencia a notificar:</p>
+            <select id="wa-contact-select" class="form-input" style="margin-bottom:12px;"></select>
+            <div style="display:flex; gap:8px;">
+                <button type="button" id="wa-cancel-btn" class="btn-primary" style="flex:1; background:#95a5a6;">Cancelar</button>
+                <button type="button" id="wa-send-btn" class="btn-primary" style="flex:2; background:#25D366;">📲 Enviar WhatsApp</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LINEAMIENTOS -->
+    <div id="docs-modal" class="modal hidden-modal">
+        <div class="modal-content">
+            <h3>📄 Lineamientos y Documentos</h3>
+            <div id="modal-docs-list" style="max-height:60vh; overflow-y:auto; margin-top:10px;"></div>
+            <button type="button" onclick="document.getElementById('docs-modal').classList.add('hidden-modal')" class="btn-primary" style="margin-top:12px; background:#7f8c8d;">Cerrar</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script src="alertas.js" defer></script>
+    <script src="acciones.js" defer></script>
+    <script src="dashboard.js" defer></script>
+</body>
+</html>
