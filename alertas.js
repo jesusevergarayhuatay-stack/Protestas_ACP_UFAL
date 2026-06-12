@@ -12,13 +12,23 @@ let alertasUbicaciones = [];
 let alertasActores = [];
 let alertasDocumentos = [];
 
+// --- Toggle sección vincular conflicto ---
+function toggleConflictoAlerta(mostrar) {
+    const div = document.getElementById('alerta-conflicto-buscar');
+    if (div) div.style.display = mostrar ? 'block' : 'none';
+    if (!mostrar) window._alertaConflictoVinculado = null;
+}
+window.toggleConflictoAlerta = toggleConflictoAlerta;
+
 // --- Clasificaciones y catálogos ---
 const CLASIFICACIONES_ALERTA = [
-    "Conflicto social activo",
-    "Conflicto social latente",
-    "Situación de conflictividad",
-    "Emergencia social",
-    "Alerta temprana",
+    "Situaciones que pueden derivar en acciones colectivas de protesta y/o conflictos sociales",
+    "Anuncios de acciones colectivas de protesta",
+    "Pronunciamientos, memoriales u otros documentos que dan a conocer demandas sociales",
+    "Acción colectiva en curso",
+    "Acción colectiva de protesta en curso",
+    "Anuncio de acción colectiva de protesta",
+    "Situación que puede derivar en conflicto social",
     "Otro"
 ];
 

@@ -147,12 +147,27 @@
                         <div class="form-section-card">
                             <div class="section-header-row">
                                 <h4 class="form-section-title">2. Vincular Conflicto</h4>
-                                <button type="button" id="buscar-conflicto-alerta-btn" class="btn-section-action">🔍 Buscar conflicto</button>
                             </div>
-                            <div id="alerta-conflicto-container" class="conflicto-placeholder-wrap">
-                                <div class="conflicto-placeholder">
-                                    <span class="info-icon">ℹ️</span>
-                                    <p>No hay conflicto vinculado. Use el botón "Buscar conflicto" para asociar uno.</p>
+                            <div class="field-group" style="margin-bottom:10px;">
+                                <label class="field-label">¿Se vincula a un conflicto registrado?</label>
+                                <div style="display:flex;gap:16px;margin-top:4px;">
+                                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                        <input type="radio" name="alerta-vincular-conflicto" id="alerta-vincular-si" value="si" onchange="toggleConflictoAlerta(true)">
+                                        <span>Sí</span>
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                        <input type="radio" name="alerta-vincular-conflicto" id="alerta-vincular-no" value="no" onchange="toggleConflictoAlerta(false)" checked>
+                                        <span>No</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="alerta-conflicto-buscar" style="display:none;">
+                                <button type="button" id="buscar-conflicto-alerta-btn" class="btn-section-action">🔍 Buscar conflicto</button>
+                                <div id="alerta-conflicto-container" class="conflicto-placeholder-wrap" style="margin-top:8px;">
+                                    <div class="conflicto-placeholder">
+                                        <span class="info-icon">ℹ️</span>
+                                        <p>Use el botón "Buscar conflicto" para asociar uno.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -188,10 +203,10 @@
                     <!-- COLUMNA DERECHA -->
                     <div class="form-col-right">
 
-                        <!-- 5. Ubicación del Conflicto -->
+                        <!-- 5. Ubicación de la Alerta -->
                         <div class="form-section-card">
                             <div class="section-header-row">
-                                <h4 class="form-section-title">5. Ubicación del Conflicto</h4>
+                                <h4 class="form-section-title">5. Ubicación de la Alerta</h4>
                                 <button type="button" id="agregar-ubicacion-alerta-btn" class="btn-section-action">📍 Agregar</button>
                             </div>
                             <div id="alerta-ubicaciones-list">
@@ -199,10 +214,10 @@
                             </div>
                         </div>
 
-                        <!-- 6. Actores Involucrados -->
+                        <!-- 6. Actores -->
                         <div class="form-section-card">
                             <div class="section-header-row">
-                                <h4 class="form-section-title">6. Actores Involucrados</h4>
+                                <h4 class="form-section-title">6. Actores Demandantes / Demandados</h4>
                                 <button type="button" id="agregar-actor-alerta-btn" class="btn-section-action">👥 Agregar</button>
                             </div>
                             <div id="alerta-actores-list">
@@ -324,12 +339,27 @@
                         <div class="form-section-card">
                             <div class="section-header-row">
                                 <h4 class="form-section-title">2. Vincular Conflicto</h4>
-                                <button type="button" id="buscar-conflicto-acp-btn" class="btn-section-action">🔍 Buscar conflicto</button>
                             </div>
-                            <div id="acp-conflicto-container" class="conflicto-placeholder-wrap">
-                                <div class="conflicto-placeholder">
-                                    <span class="info-icon">ℹ️</span>
-                                    <p>No hay conflicto vinculado. Use el botón "Buscar conflicto" para asociar uno.</p>
+                            <div class="field-group" style="margin-bottom:10px;">
+                                <label class="field-label">¿Se vincula a un conflicto registrado?</label>
+                                <div style="display:flex;gap:16px;margin-top:4px;">
+                                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                        <input type="radio" name="acp-vincular-conflicto" id="acp-vincular-si" value="si" onchange="toggleConflictoAcp(true)">
+                                        <span>Sí</span>
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                                        <input type="radio" name="acp-vincular-conflicto" id="acp-vincular-no" value="no" onchange="toggleConflictoAcp(false)" checked>
+                                        <span>No</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="acp-conflicto-buscar" style="display:none;">
+                                <button type="button" id="buscar-conflicto-acp-btn" class="btn-section-action">🔍 Buscar conflicto</button>
+                                <div id="acp-conflicto-container" class="conflicto-placeholder-wrap" style="margin-top:8px;">
+                                    <div class="conflicto-placeholder">
+                                        <span class="info-icon">ℹ️</span>
+                                        <p>Use el botón "Buscar conflicto" para asociar uno.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -384,10 +414,10 @@
                     <!-- COLUMNA DERECHA -->
                     <div class="form-col-right">
 
-                        <!-- 5. Actores Involucrados -->
+                        <!-- 5. Actores -->
                         <div class="form-section-card">
                             <div class="section-header-row">
-                                <h4 class="form-section-title">5. Actores Involucrados</h4>
+                                <h4 class="form-section-title">5. Actores Demandantes / Demandados</h4>
                                 <button type="button" id="agregar-actor-acp-btn" class="btn-section-action">👥 Agregar</button>
                             </div>
                             <div id="acp-actores-list">
@@ -439,10 +469,10 @@
                             </div>
                         </div>
 
-                        <!-- 10. Ubicación del Conflicto -->
+                        <!-- 10. Ubicación del ACP -->
                         <div class="form-section-card">
                             <div class="section-header-row">
-                                <h4 class="form-section-title">10. Ubicación del Conflicto</h4>
+                                <h4 class="form-section-title">10. Ubicación del ACP</h4>
                                 <button type="button" id="agregar-ubicacion-acp-btn" class="btn-section-action">📍 Agregar</button>
                             </div>
                             <div id="acp-ubicaciones-list">

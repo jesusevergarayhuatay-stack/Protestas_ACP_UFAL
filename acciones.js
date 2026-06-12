@@ -2,6 +2,14 @@
 // MÓDULO: ACCIONES COLECTIVAS DE PROTESTA (ACP)
 // =============================================
 
+// --- Toggle sección vincular conflicto ---
+function toggleConflictoAcp(mostrar) {
+    const div = document.getElementById('acp-conflicto-buscar');
+    if (div) div.style.display = mostrar ? 'block' : 'none';
+    if (!mostrar) window._acpConflictoVinculado = null;
+}
+window.toggleConflictoAcp = toggleConflictoAcp;
+
 // --- Estado del módulo ---
 let acpRecords = [];
 let acpEditMode = false;
