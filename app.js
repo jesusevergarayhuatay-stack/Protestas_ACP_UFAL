@@ -1037,7 +1037,7 @@ document.getElementById('finish-btn')?.addEventListener('click', async () => {
     const duracionMs = activeSession.endTime - activeSession.startTime;
     const duracionMin = Math.round(duracionMs / 60000);
     const finStr = formatAMPM(new Date(activeSession.endTime));
-    syncWithCloud('finish', {
+    await syncWithCloud('finish', {
         sessionId: activeSession.sessionId,
         fin: finStr,
         duracion: duracionMin + ' min',
