@@ -85,7 +85,7 @@
             <!-- VISTA LISTA -->
             <div id="alertas-list-view">
                 <div class="modulo-header">
-                    <button class="back-to-menu-btn btn-back-modulo">⬅ Menú</button>
+                    <button class="back-to-menu-btn btn-back-modulo" onclick="showMainMenu()">⬅ Menú</button>
                     <div class="modulo-title-area">
                         <h2 class="modulo-title">🚨 Registro de Alertas</h2>
                         <button id="nueva-alerta-btn" class="btn-nuevo-registro" onclick="openAlertaForm()">+ Nueva Alerta</button>
@@ -371,7 +371,7 @@
             <!-- VISTA LISTA -->
             <div id="acp-list-view">
                 <div class="modulo-header">
-                    <button class="back-to-menu-btn btn-back-modulo">⬅ Menú</button>
+                    <button class="back-to-menu-btn btn-back-modulo" onclick="showMainMenu()">⬅ Menú</button>
                     <div class="modulo-title-area">
                         <h2 class="modulo-title">🤝 Acciones Colectivas de Protesta</h2>
                         <button id="nueva-acp-btn" class="btn-nuevo-registro" onclick="openAcpForm()">+ Nueva ACP</button>
@@ -677,7 +677,7 @@
         <div id="modulo-supervision" class="d-none">
             <!-- SECCIÓN 1: SELECCIÓN -->
             <section id="selection-section" class="selection-grid">
-                <button class="btn btn-sm btn-outline-secondary mb-2 back-to-menu-btn" style="align-self: flex-start; max-width: 200px;">
+                <button class="btn btn-sm btn-outline-secondary mb-2 back-to-menu-btn" onclick="showMainMenu()" style="align-self: flex-start; max-width: 200px;">
                     ⬅ Volver al Menú Principal
                 </button>
                 <h2 style="text-align:center; margin: 20px 0; color: var(--primary);">¿Dónde supervisas hoy?</h2>
@@ -708,8 +708,7 @@
 
             <!-- SECCIÓN 2: FORMULARIOS -->
             <section id="acp-section" class="card hidden">
-                <button class="back-link"
-                    style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; margin-bottom:15px;">⬅ Volver</button>
+                <button class="back-link" onclick="showSection('selection-section')" style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; margin-bottom:15px;">⬅ Volver</button>
                 <h2>Supervisión OD/MOD</h2>
                 <form id="acp-form">
                     <div class="form-group">
@@ -848,8 +847,7 @@
             </section>
 
             <section id="start-section" class="card hidden">
-                <button class="back-link"
-                    style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; margin-bottom:15px;">⬅ Volver</button>
+                <button class="back-link" onclick="showSection('selection-section')" style="border:none; background:none; color:var(--primary); font-weight:700; cursor:pointer; margin-bottom:15px;">⬅ Volver</button>
                 <h2>Supervisión Lima</h2>
                 <form id="start-form">
                     <div class="form-group">
@@ -1063,7 +1061,13 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Firebase Compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="offline.js"></script>
+        <script src="app.js"></script>
     <script src="alertas.js" defer></script>
     <script src="acciones.js" defer></script>
     <script src="dashboard.js" defer></script>
