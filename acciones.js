@@ -195,6 +195,8 @@ async function saveAcp() {
         fechaEvento,
         fuenteInfo: document.getElementById('acp-fuente-info')?.value || '',
         linkFuente: document.getElementById('acp-link-fuente')?.value || '',
+        comisionado: document.getElementById('acp-comisionado')?.value || '',
+        oficina: document.getElementById('acp-oficina')?.value || '',
         descripcion: document.getElementById('acp-descripcion')?.value || '',
         demandas: document.getElementById('acp-demandas')?.value || '',
         cantidadPersonas: parseInt(document.getElementById('acp-cantidad-personas')?.value) || 0,
@@ -284,6 +286,8 @@ function fillAcpForm(data) {
     document.getElementById('acp-fecha-evento').value = data.fechaEvento || '';
     document.getElementById('acp-fuente-info').value = data.fuenteInfo || '';
     document.getElementById('acp-link-fuente').value = data.linkFuente || '';
+    document.getElementById('acp-comisionado').value = data.comisionado || '';
+    document.getElementById('acp-oficina').value = data.oficina || '';
     document.getElementById('acp-descripcion').value = data.descripcion || '';
     document.getElementById('acp-demandas').value = data.demandas || '';
     document.getElementById('acp-cantidad-personas').value = data.cantidadPersonas || 0;
