@@ -262,6 +262,8 @@ async function saveAlerta() {
         fechaEvento: document.getElementById('alerta-fecha-evento')?.value || new Date().toISOString().split('T')[0],
         fuenteInfo: document.getElementById('alerta-fuente-info')?.value || '',
         linkFuente: document.getElementById('alerta-link-fuente')?.value || '',
+        comisionado: document.getElementById('alerta-comisionado')?.value || '',
+        oficina: document.getElementById('alerta-oficina')?.value || '',
         descripcion: document.getElementById('alerta-descripcion')?.value || '',
         demandas: document.getElementById('alerta-demandas')?.value || '',
         tipoMedida: document.getElementById('alerta-tipo-medida')?.value || '',
@@ -348,6 +350,8 @@ function fillAlertaForm(data) {
     document.getElementById('alerta-clasificacion').value = data.clasificacion || '';
     document.getElementById('alerta-fuente-info').value = data.fuenteInfo || '';
     document.getElementById('alerta-link-fuente').value = data.linkFuente || '';
+    document.getElementById('alerta-comisionado').value = data.comisionado || '';
+    document.getElementById('alerta-oficina').value = data.oficina || '';
     document.getElementById('alerta-descripcion').value = data.descripcion || '';
     document.getElementById('alerta-demandas').value = data.demandas || '';
     document.getElementById('alerta-tipo-medida').value = data.tipoMedida || '';

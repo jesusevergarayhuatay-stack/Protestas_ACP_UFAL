@@ -8,6 +8,7 @@ var HEADERS_ALERTAS = [
     "Clasificación", "Nivel de Riesgo", "Probabilidad", "Impacto",
     "Tipo de Medida", "Tipo de Demanda", "Demandas", "Descripción",
     "Fuente de Información", "Link Fuente",
+    "Comisionado", "Oficina",
     "Ubicaciones", "Actores", "Conflicto Vinculado",
     "Documentos (URLs)", "Registrado Por", "ID Firebase"
 ];
@@ -16,6 +17,7 @@ var HEADERS_ACP = [
     "Código", "Fecha Registro", "Fecha Evento", "Nombre del Evento",
     "Tipo de Medida", "Tipo de Demanda", "Demandas", "Descripción",
     "Fuente de Información", "Link Fuente",
+    "Comisionado", "Oficina",
     "Ubicaciones", "Actores", "¿Hubo Violencia?",
     "Cantidad Personas", "Cantidad Terceros",
     "N° Heridos", "N° Detenidos", "N° Fallecidos", "N° Desaparecidos",
@@ -222,7 +224,7 @@ function doPost(e) {
             var year = new Date().getFullYear();
 
             // Buscar si ya existe el registro (actualización)
-            var existingRow = d.firebaseId ? findRowByFirebaseId(sheetAlertas, 20, d.firebaseId) : -1;
+            var existingRow = d.firebaseId ? findRowByFirebaseId(sheetAlertas, 22, d.firebaseId) : -1;
 
             // Formatear arrays
             var ubicStr = (d.ubicaciones || [])
@@ -260,6 +262,8 @@ function doPost(e) {
                 d.descripcion || '',
                 d.fuenteInfo || '',
                 d.linkFuente || '',
+                d.comisionado || '',
+                d.oficina || '',
                 ubicStr,
                 actoresStr,
                 conflicto,
@@ -283,7 +287,7 @@ function doPost(e) {
             var d = data;
             var year = new Date().getFullYear();
 
-            var existingRow = d.firebaseId ? findRowByFirebaseId(sheetACP, 27, d.firebaseId) : -1;
+            var existingRow = d.firebaseId ? findRowByFirebaseId(sheetACP, 29, d.firebaseId) : -1;
 
             var ubicStr = (d.ubicaciones || [])
                 .map(function(u) { return [u.departamento, u.provincia, u.distrito, u.poblado].filter(Boolean).join(', '); })
@@ -320,6 +324,8 @@ function doPost(e) {
                 d.descripcion || '',
                 d.fuenteInfo || '',
                 d.linkFuente || '',
+                d.comisionado || '',
+                d.oficina || '',
                 ubicStr,
                 actoresStr,
                 d.huboViolencia || '',
