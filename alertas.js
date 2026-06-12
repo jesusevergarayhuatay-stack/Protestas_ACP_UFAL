@@ -442,7 +442,7 @@ function removeUbicacion(formPrefix, idx) {
 
 // --- ACTORES ---
 const TIPOS_ACTOR = ["Sindicato", "Organización social", "Comunidad campesina", "Comunidad nativa", "Empresa privada", "Entidad estatal", "Partido político", "Organización religiosa", "Otro"];
-const ROLES_ACTOR = ["Convocante", "Participante", "Afectado", "Mediador", "Observador", "Otro"];
+const ROLES_ACTOR = ["Demandante", "Demandado"];
 
 function addActorRow(formPrefix) {
     const list = formPrefix === 'alerta' ? alertasActores : acpActores;
