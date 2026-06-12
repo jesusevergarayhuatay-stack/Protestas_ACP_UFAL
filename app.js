@@ -942,7 +942,7 @@ saveIncidentBtn?.addEventListener('click', async () => {
             }
         }
 
-        syncWithCloud('incident', activeSession, { incident: inc });
+        syncWithCloud('incident', activeSession, { new_incident: inc });
 
         if (isCritical) {
             openWaModal(inc);
