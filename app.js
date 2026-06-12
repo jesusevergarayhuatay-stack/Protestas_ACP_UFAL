@@ -1066,4 +1066,16 @@ window.adminLogin = adminLogin;
 window.showAcpForm = showAcpForm;
 window.showPlanForm = showPlanForm;
 
+// Toggle sección "vincular conflicto" — disponible desde el inicio
+window.toggleConflictoAlerta = function(mostrar) {
+    const div = document.getElementById('alerta-conflicto-buscar');
+    if (div) div.style.display = mostrar ? 'block' : 'none';
+    if (!mostrar) window._alertaConflictoVinculado = null;
+};
+window.toggleConflictoAcp = function(mostrar) {
+    const div = document.getElementById('acp-conflicto-buscar');
+    if (div) div.style.display = mostrar ? 'block' : 'none';
+    if (!mostrar) window._acpConflictoVinculado = null;
+};
+
 init();
