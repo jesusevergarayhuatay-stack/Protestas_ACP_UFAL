@@ -1050,8 +1050,7 @@ document.getElementById('finish-btn')?.addEventListener('click', async () => {
 async function syncWithCloud(action, session, extra = {}) {
     if (!GOOGLE_SHEETS_URL) return;
     try {
-        // El Apps Script espera los campos de sesión en la raíz del objeto, no bajo "session"
-        fetch(GOOGLE_SHEETS_URL, {
+        await fetch(GOOGLE_SHEETS_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify({ action, ...session, ...extra })
