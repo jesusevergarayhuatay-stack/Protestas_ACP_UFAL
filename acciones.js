@@ -17,7 +17,9 @@ let acpCurrentId = null;
 
 // Listas dinámicas (ACP)
 let acpUbicaciones = [];
-let acpActores = [];
+let acpActores = []; // legacy
+let acpActoresDemandantes = [];
+let acpActoresDemandados = [];
 let acpDocumentos = [];
 let acpHeridas = [];
 let acpDetenidas = [];
@@ -66,7 +68,8 @@ function setupAcpListeners() {
 
     // Dinámicos
     document.getElementById('agregar-ubicacion-acp-btn')?.addEventListener('click', () => addUbicacionRow('acp'));
-    document.getElementById('agregar-actor-acp-btn')?.addEventListener('click', () => addActorRow('acp'));
+    document.getElementById('agregar-demandante-acp-btn')?.addEventListener('click', () => addActorByRole('acp', 'Demandante'));
+    document.getElementById('agregar-demandado-acp-btn')?.addEventListener('click', () => addActorByRole('acp', 'Demandado'));
     document.getElementById('agregar-herida-btn')?.addEventListener('click', () => addPersonaRow('heridas'));
     document.getElementById('agregar-detenida-btn')?.addEventListener('click', () => addPersonaRow('detenidas'));
     document.getElementById('agregar-fallecida-btn')?.addEventListener('click', () => addPersonaRow('fallecidas'));
@@ -94,6 +97,8 @@ function openAcpForm(editData = null) {
     acpCurrentId = editData?.id || null;
     acpUbicaciones = [];
     acpActores = [];
+    acpActoresDemandantes = [];
+    acpActoresDemandados = [];
     acpDocumentos = [];
     acpHeridas = [];
     acpDetenidas = [];
@@ -117,6 +122,11 @@ function openAcpForm(editData = null) {
         renderPersonasList('desaparecidas', []);
         unlinkConflicto('acp');
     }
+
+    // Inicializar tipo de fecha y max=hoy
+    const radioUnicaInit = document.getElementById('acp-tipo-fecha-unica');
+    if (radioUnicaInit) radioUnicaInit.checked = true;
+    toggleAcpTipoFecha('unica');
 
     document.getElementById('modulo-acciones')?.scrollTo(0, 0);
 }
@@ -190,9 +200,16 @@ async function saveAcp() {
 
     const docsWithUrls = await uploadAcpDocumentos();
 
+    // Fecha: puede ser única o rango
+    const tipoFecha = document.querySelector('input[name="acp-tipo-fecha"]:checked')?.value || 'unica';
+    const fechaInicio = document.getElementById('acp-fecha-inicio')?.value || fechaEvento;
+    const fechaFin = document.getElementById('acp-fecha-fin')?.value || '';
+
     const data = {
         nombreEvento,
-        fechaEvento,
+        fechaEvento: tipoFecha === 'rango' ? fechaInicio : fechaEvento,
+        fechaFin: tipoFecha === 'rango' ? fechaFin : '',
+        tipoFecha,
         fuenteInfo: document.getElementById('acp-fuente-info')?.value || '',
         linkFuente: document.getElementById('acp-link-fuente')?.value || '',
         comisionado: document.getElementById('acp-comisionado')?.value || '',
@@ -200,13 +217,14 @@ async function saveAcp() {
         descripcion: document.getElementById('acp-descripcion')?.value || '',
         demandas: document.getElementById('acp-demandas')?.value || '',
         cantidadPersonas: parseInt(document.getElementById('acp-cantidad-personas')?.value) || 0,
-        cantidadTerceros: parseInt(document.getElementById('acp-cantidad-terceros')?.value) || 0,
         tipoMedida: document.getElementById('acp-tipo-medida')?.value || '',
         tipoDemanda: document.getElementById('acp-tipo-demanda')?.value || '',
         huboViolencia: document.getElementById('acp-hubo-violencia')?.value || '',
         conflictoVinculado: window._acpConflictoVinculado || null,
         ubicaciones: acpUbicaciones,
-        actores: acpActores,
+        actores: [...acpActoresDemandantes, ...acpActoresDemandados],
+        actoresDemandantes: acpActoresDemandantes,
+        actoresDemandados: acpActoresDemandados,
         heridas: acpHeridas,
         detenidas: acpDetenidas,
         fallecidas: acpFallecidas,
@@ -283,7 +301,20 @@ function deleteAcp(id) {
 
 function fillAcpForm(data) {
     document.getElementById('acp-nombre-evento').value = data.nombreEvento || '';
-    document.getElementById('acp-fecha-evento').value = data.fechaEvento || '';
+    // Restaurar tipo de fecha y campos correspondientes
+    const tipoFecha = data.tipoFecha || 'unica';
+    const radioUnica = document.getElementById('acp-tipo-fecha-unica');
+    const radioRango = document.getElementById('acp-tipo-fecha-rango');
+    if (tipoFecha === 'rango' && radioRango) {
+        radioRango.checked = true;
+        toggleAcpTipoFecha('rango');
+        document.getElementById('acp-fecha-inicio').value = data.fechaEvento || '';
+        document.getElementById('acp-fecha-fin').value = data.fechaFin || '';
+    } else {
+        if (radioUnica) radioUnica.checked = true;
+        toggleAcpTipoFecha('unica');
+        document.getElementById('acp-fecha-evento').value = data.fechaEvento || '';
+    }
     document.getElementById('acp-fuente-info').value = data.fuenteInfo || '';
     document.getElementById('acp-link-fuente').value = data.linkFuente || '';
     document.getElementById('acp-comisionado').value = data.comisionado || '';
@@ -291,13 +322,14 @@ function fillAcpForm(data) {
     document.getElementById('acp-descripcion').value = data.descripcion || '';
     document.getElementById('acp-demandas').value = data.demandas || '';
     document.getElementById('acp-cantidad-personas').value = data.cantidadPersonas || 0;
-    document.getElementById('acp-cantidad-terceros').value = data.cantidadTerceros || 0;
     document.getElementById('acp-tipo-medida').value = data.tipoMedida || '';
     document.getElementById('acp-tipo-demanda').value = data.tipoDemanda || '';
     document.getElementById('acp-hubo-violencia').value = data.huboViolencia || '';
 
     acpUbicaciones = data.ubicaciones || [];
-    acpActores = data.actores || [];
+    acpActoresDemandantes = data.actoresDemandantes || (data.actores || []).filter(a => a.rol === 'Demandante');
+    acpActoresDemandados = data.actoresDemandados || (data.actores || []).filter(a => a.rol === 'Demandado');
+    acpActores = [...acpActoresDemandantes, ...acpActoresDemandados];
     acpHeridas = data.heridas || [];
     acpDetenidas = data.detenidas || [];
     acpFallecidas = data.fallecidas || [];
@@ -305,7 +337,8 @@ function fillAcpForm(data) {
     acpDocumentos = data.documentos || [];
 
     renderUbicacionesList('acp', acpUbicaciones);
-    renderActoresList('acp', acpActores);
+    renderActoresDemandantesList('acp', acpActoresDemandantes);
+    renderActoresDemandadosList('acp', acpActoresDemandados);
     renderPersonasList('heridas', acpHeridas);
     renderPersonasList('detenidas', acpDetenidas);
     renderPersonasList('fallecidas', acpFallecidas);
@@ -407,6 +440,27 @@ function handleFilesAcp(files) {
     renderDocumentosList('acp', acpDocumentos);
 }
 
+// --- TIPO DE FECHA ACP (única / rango) ---
+function toggleAcpTipoFecha(tipo) {
+    const wrapUnica = document.getElementById('acp-fecha-unica-wrap');
+    const wrapRango = document.getElementById('acp-fecha-rango-wrap');
+    const today = new Date().toISOString().split('T')[0];
+    if (tipo === 'rango') {
+        if (wrapUnica) wrapUnica.style.display = 'none';
+        if (wrapRango) wrapRango.style.display = 'block';
+        const fi = document.getElementById('acp-fecha-inicio');
+        const ff = document.getElementById('acp-fecha-fin');
+        if (fi) fi.max = today;
+        if (ff) ff.max = today;
+    } else {
+        if (wrapUnica) wrapUnica.style.display = 'block';
+        if (wrapRango) wrapRango.style.display = 'none';
+        const fe = document.getElementById('acp-fecha-evento');
+        if (fe) fe.max = today;
+    }
+}
+window.toggleAcpTipoFecha = toggleAcpTipoFecha;
+
 // Exponer globales
 window.editAcp = editAcp;
 window.deleteAcp = deleteAcp;
@@ -415,3 +469,6 @@ window.removePersona = removePersona;
 window.updatePersona = updatePersona;
 window.openAcpForm = openAcpForm;
 window.initAcpModule = initAcpModule;
+window.addActorByRole = window.addActorByRole || addActorByRole;
+window.removeActorByRole = window.removeActorByRole || removeActorByRole;
+window.updateActorByRole = window.updateActorByRole || updateActorByRole;

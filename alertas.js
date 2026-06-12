@@ -9,7 +9,9 @@ let alertasCurrentId = null;
 
 // Listas dinámicas (estado en memoria)
 let alertasUbicaciones = [];
-let alertasActores = [];
+let alertasActores = []; // legacy – se mantiene para compatibilidad
+let alertasActoresDemandantes = [];
+let alertasActoresDemandados = [];
 let alertasDocumentos = [];
 
 // --- Toggle sección vincular conflicto ---
@@ -24,20 +26,14 @@ window.toggleConflictoAlerta = toggleConflictoAlerta;
 const CLASIFICACIONES_ALERTA = [
     "Situaciones que pueden derivar en acciones colectivas de protesta y/o conflictos sociales",
     "Anuncios de acciones colectivas de protesta",
-    "Pronunciamientos, memoriales u otros documentos que dan a conocer demandas sociales",
-    "Acción colectiva en curso",
-    "Acción colectiva de protesta en curso",
-    "Anuncio de acción colectiva de protesta",
-    "Situación que puede derivar en conflicto social",
-    "Otro"
+    "Pronunciamientos, memoriales u otros documentos que dan a conocer demandas sociales"
 ];
 
 const TIPOS_MEDIDA = [
-    "Movilización",
-    "Bloqueo de vías (carreteras o vías de acceso)",
-    "Paros (24 horas, 48 horas, 72 horas, indefinido)",
-    "Plantones (concentraciones o mítines)",
-    "Huelgas (huelga indefinida)",
+    "Bloqueo de vías",
+    "Paros",
+    "Plantones",
+    "Huelgas",
     "Toma de entidades, locales, campamentos",
     "Marcha",
     "Destrucción o daño de la propiedad pública y/o privada",
@@ -46,33 +42,17 @@ const TIPOS_MEDIDA = [
 ];
 
 const TIPOS_DEMANDA = [
-    "Problemas ambientales",
-    "Rechazo a la actividad extractiva",
-    "Problemas de relacionamiento comunitario o incumplimiento de compromisos",
-    "Acceso al agua",
-    "Demanda de consulta previa",
-    "Cumplimiento en la ejecución de proyectos de inversión",
-    "Cuestionamiento a la gestión municipal (falta de transparencia y de espacios de participación, rendición de cuentas)",
-    "Incremento y/o nivelación de remuneraciones",
-    "Demandas laborales (mejoras de condiciones, pago de horas extras, bonificaciones, pago de incentivos, etc.)",
-    "Demandas al gobierno nacional",
-    "Imprecisiones en el límite",
-    "Mejora de calidad educativa",
-    "Cuestionamiento a la gestión de autoridades universitarias",
-    "Cuestionamiento a la gestión educativa",
-    "Demandas de compensación",
-    "Respeto de derechos",
-    "Adecuada prestación de servicios",
-    "Rechazo a las actividades minero informales",
-    "Rechazo a normas / políticas",
-    "Demandas al gobierno local",
-    "Rechazo a la designación de Director/a / jefe",
-    "Cuestionamiento al proceso de elección",
-    "Pago de remuneraciones",
-    "Rechazo a proyectos de inversión",
-    "Demandas al Gobierno Regional",
-    "Cuestionamiento a las decisiones de las instancias superiores",
-    "Otros"
+    "Asuntos Constitucionales",
+    "Administración Estatal",
+    "Derechos Humanos",
+    "Personas con Discapacidad",
+    "Medio Ambiente",
+    "Servicios Públicos",
+    "Pueblos Indígenas",
+    "Prevención de Conflictos Sociales y Gobernabilidad",
+    "Niñez y Adolescencia",
+    "Derechos de la Mujer",
+    "Lucha contra la Corrupción, Transparencia y Eficiencia del Estado"
 ];
 
 const FUENTES_INFO = [
@@ -148,7 +128,8 @@ function setupAlertasListeners() {
     // Dinámicos: Ubicaciones
     document.getElementById('agregar-ubicacion-alerta-btn')?.addEventListener('click', () => addUbicacionRow('alerta'));
     // Dinámicos: Actores
-    document.getElementById('agregar-actor-alerta-btn')?.addEventListener('click', () => addActorRow('alerta'));
+    document.getElementById('agregar-demandante-alerta-btn')?.addEventListener('click', () => addActorByRole('alerta', 'Demandante'));
+    document.getElementById('agregar-demandado-alerta-btn')?.addEventListener('click', () => addActorByRole('alerta', 'Demandado'));
     // Dinámicos: Documentos
     const dropZone = document.getElementById('alerta-dropzone');
     const fileInput = document.getElementById('alerta-file-input');
@@ -171,18 +152,29 @@ function openAlertaForm(editData = null) {
     alertasCurrentId = editData?.id || null;
     alertasUbicaciones = [];
     alertasActores = [];
+    alertasActoresDemandantes = [];
+    alertasActoresDemandados = [];
     alertasDocumentos = [];
 
     document.getElementById('alertas-list-view')?.classList.add('d-none');
     document.getElementById('alertas-form-view')?.classList.remove('d-none');
     document.getElementById('alerta-form-title').textContent = editData ? 'Editar Alerta' : 'Registro de Nueva Alerta';
 
+    // Fecha mínima = mañana (alertas preventivas deben ser a futuro)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const fechaInput = document.getElementById('alerta-fecha-evento');
+    if (fechaInput) fechaInput.min = tomorrowStr;
+
     if (editData) {
         fillAlertaForm(editData);
     } else {
         document.getElementById('alerta-form-el')?.reset();
+        if (fechaInput) fechaInput.min = tomorrowStr;
         renderUbicacionesList('alerta', []);
-        renderActoresList('alerta', []);
+        renderActoresDemandantesList('alerta', []);
+        renderActoresDemandadosList('alerta', []);
         renderDocumentosList('alerta', []);
         unlinkConflicto('alerta');
     }
@@ -270,7 +262,9 @@ async function saveAlerta() {
         tipoDemanda: document.getElementById('alerta-tipo-demanda')?.value || '',
         conflictoVinculado: window._alertaConflictoVinculado || null,
         ubicaciones: alertasUbicaciones,
-        actores: alertasActores,
+        actores: [...alertasActoresDemandantes, ...alertasActoresDemandados],
+        actoresDemandantes: alertasActoresDemandantes,
+        actoresDemandados: alertasActoresDemandados,
         riesgoProbabilidad: document.getElementById('alerta-riesgo-prob')?.value || '',
         riesgoImpacto: document.getElementById('alerta-riesgo-impacto')?.value || '',
         nivelRiesgo: document.getElementById('alerta-nivel-riesgo')?.textContent || '',
@@ -360,11 +354,14 @@ function fillAlertaForm(data) {
     document.getElementById('alerta-riesgo-impacto').value = data.riesgoImpacto || '';
 
     alertasUbicaciones = data.ubicaciones || [];
-    alertasActores = data.actores || [];
+    alertasActoresDemandantes = data.actoresDemandantes || (data.actores || []).filter(a => a.rol === 'Demandante');
+    alertasActoresDemandados = data.actoresDemandados || (data.actores || []).filter(a => a.rol === 'Demandado');
+    alertasActores = [...alertasActoresDemandantes, ...alertasActoresDemandados];
     alertasDocumentos = data.documentos || [];
 
     renderUbicacionesList('alerta', alertasUbicaciones);
-    renderActoresList('alerta', alertasActores);
+    renderActoresDemandantesList('alerta', alertasActoresDemandantes);
+    renderActoresDemandadosList('alerta', alertasActoresDemandados);
     renderDocumentosList('alerta', alertasDocumentos);
 
     if (data.conflictoVinculado) {
@@ -446,52 +443,66 @@ function removeUbicacion(formPrefix, idx) {
 
 // --- ACTORES ---
 const TIPOS_ACTOR = ["Sindicato", "Organización social", "Comunidad campesina", "Comunidad nativa", "Empresa privada", "Entidad estatal", "Partido político", "Organización religiosa", "Otro"];
-const ROLES_ACTOR = ["Demandante", "Demandado"];
 
-function addActorRow(formPrefix) {
-    const list = formPrefix === 'alerta' ? alertasActores : acpActores;
-    list.push({ nombre: '', tipo: '', rol: '' });
-    renderActoresList(formPrefix, list);
+function _getActorList(formPrefix, rol) {
+    if (formPrefix === 'alerta') return rol === 'Demandante' ? alertasActoresDemandantes : alertasActoresDemandados;
+    return rol === 'Demandante' ? acpActoresDemandantes : acpActoresDemandados;
 }
 
-function renderActoresList(formPrefix, list) {
-    const container = document.getElementById(formPrefix + '-actores-list');
-    if (!container) return;
+function addActorByRole(formPrefix, rol) {
+    _getActorList(formPrefix, rol).push({ nombre: '', tipo: '', rol });
+    if (rol === 'Demandante') renderActoresDemandantesList(formPrefix, _getActorList(formPrefix, rol));
+    else renderActoresDemandadosList(formPrefix, _getActorList(formPrefix, rol));
+}
 
+function _renderActoresByRol(formPrefix, rol, list, containerId, emptyMsg) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
     if (!list.length) {
-        container.innerHTML = '<p class="empty-state-sm">Agregue al menos un actor involucrado.</p>';
+        container.innerHTML = `<p class="empty-state-sm">${emptyMsg}</p>`;
         return;
     }
-
     container.innerHTML = list.map((actor, idx) => `
         <div class="dynamic-row">
             <div class="dynamic-row-header">
                 <strong>Actor ${idx + 1}</strong>
-                <button class="btn-delete-row" onclick="removeActor('${formPrefix}', ${idx})">🗑️</button>
+                <button class="btn-delete-row" onclick="removeActorByRole('${formPrefix}', '${rol}', ${idx})">🗑️</button>
             </div>
             <div class="actor-grid">
-                <input type="text" class="form-input" placeholder="Nombre del actor / organización" value="${actor.nombre || ''}" oninput="updateActor('${formPrefix}', ${idx}, 'nombre', this.value)">
-                <select class="form-input" onchange="updateActor('${formPrefix}', ${idx}, 'tipo', this.value)">
+                <input type="text" class="form-input" placeholder="Nombre del actor / organización" value="${actor.nombre || ''}" oninput="updateActorByRole('${formPrefix}', '${rol}', ${idx}, 'nombre', this.value)">
+                <select class="form-input" onchange="updateActorByRole('${formPrefix}', '${rol}', ${idx}, 'tipo', this.value)">
                     <option value="">Tipo de actor</option>
                     ${TIPOS_ACTOR.map(t => `<option value="${t}" ${actor.tipo === t ? 'selected' : ''}>${t}</option>`).join('')}
-                </select>
-                <select class="form-input" onchange="updateActor('${formPrefix}', ${idx}, 'rol', this.value)">
-                    <option value="">Rol</option>
-                    ${ROLES_ACTOR.map(r => `<option value="${r}" ${actor.rol === r ? 'selected' : ''}>${r}</option>`).join('')}
                 </select>
             </div>
         </div>`).join('');
 }
 
-function updateActor(formPrefix, idx, field, value) {
-    const list = formPrefix === 'alerta' ? alertasActores : acpActores;
+function renderActoresDemandantesList(formPrefix, list) {
+    _renderActoresByRol(formPrefix, 'Demandante', list, formPrefix + '-actores-demandantes-list', 'Agregue actores demandantes.');
+}
+
+function renderActoresDemandadosList(formPrefix, list) {
+    _renderActoresByRol(formPrefix, 'Demandado', list, formPrefix + '-actores-demandados-list', 'Agregue actores demandados.');
+}
+
+function updateActorByRole(formPrefix, rol, idx, field, value) {
+    const list = _getActorList(formPrefix, rol);
     if (list[idx]) list[idx][field] = value;
 }
 
-function removeActor(formPrefix, idx) {
-    const list = formPrefix === 'alerta' ? alertasActores : acpActores;
+function removeActorByRole(formPrefix, rol, idx) {
+    const list = _getActorList(formPrefix, rol);
     list.splice(idx, 1);
-    renderActoresList(formPrefix, list);
+    if (rol === 'Demandante') renderActoresDemandantesList(formPrefix, list);
+    else renderActoresDemandadosList(formPrefix, list);
+}
+
+// Legacy – para compatibilidad con cualquier referencia existente
+function addActorRow(formPrefix) { addActorByRole(formPrefix, 'Demandante'); }
+function renderActoresList(formPrefix) {
+    renderActoresDemandantesList(formPrefix, _getActorList(formPrefix, 'Demandante'));
+    renderActoresDemandadosList(formPrefix, _getActorList(formPrefix, 'Demandado'));
 }
 
 // --- DOCUMENTOS (Drag & Drop) ---
@@ -549,6 +560,8 @@ function removeDoc(formPrefix, idx) {
 }
 
 // --- ANÁLISIS DE RIESGO ---
+// Escala 1–3 por dimensión; producto 1–9:
+//   1–3 = Bajo | 4–6 = Intermedio | 7–9 = Alto
 function calcularNivelRiesgo(formPrefix) {
     const p = parseInt(document.getElementById(formPrefix + '-riesgo-prob')?.value) || 0;
     const i = parseInt(document.getElementById(formPrefix + '-riesgo-impacto')?.value) || 0;
@@ -558,10 +571,9 @@ function calcularNivelRiesgo(formPrefix) {
     const score = p * i;
     let nivel = '-', color = '#ccc';
     if (score > 0) {
-        if (score <= 4) { nivel = 'Bajo'; color = '#27ae60'; }
-        else if (score <= 9) { nivel = 'Medio'; color = '#f39c12'; }
-        else if (score <= 16) { nivel = 'Alto'; color = '#e67e22'; }
-        else { nivel = 'Muy Alto'; color = '#e74c3c'; }
+        if (score <= 3) { nivel = 'Bajo'; color = '#27ae60'; }
+        else if (score <= 6) { nivel = 'Intermedio'; color = '#f39c12'; }
+        else { nivel = 'Alto'; color = '#e74c3c'; }
     }
     nivelEl.textContent = nivel;
     nivelEl.style.background = color;
@@ -624,10 +636,12 @@ window.editAlerta = editAlerta;
 window.deleteAlerta = deleteAlerta;
 window.addUbicacionRow = addUbicacionRow;
 window.addActorRow = addActorRow;
+window.addActorByRole = addActorByRole;
 window.removeUbicacion = removeUbicacion;
 window.removeActor = removeActor;
+window.removeActorByRole = removeActorByRole;
 window.updateUbicacion = updateUbicacion;
-window.updateActor = updateActor;
+window.updateActorByRole = updateActorByRole;
 window.onDeptChange = onDeptChange;
 window.onProvChange = onProvChange;
 window.removeDoc = removeDoc;
@@ -635,4 +649,6 @@ window.calcularNivelRiesgo = calcularNivelRiesgo;
 window.openConflictoSearch = openConflictoSearch;
 window.unlinkConflicto = unlinkConflicto;
 window.openAlertaForm = openAlertaForm;
+window.renderActoresDemandantesList = renderActoresDemandantesList;
+window.renderActoresDemandadosList = renderActoresDemandadosList;
 window.initAlertasModule = initAlertasModule;
