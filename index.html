@@ -1028,7 +1028,6 @@
                         <option value="Heridos">🟠 Heridos</option>
                         <option value="Fallecidos">🔴 Fallecidos</option>
                         <option value="Privados de la libertad">🟣 Privados de la libertad</option>
-                        <option value="Otro">📌 Otro</option>
                     </select>
                 </div>
 
@@ -1096,10 +1095,42 @@
 
     <!-- MODAL LINEAMIENTOS -->
     <div id="docs-modal" class="modal hidden-modal">
-        <div class="modal-content">
-            <h3>📄 Lineamientos y Documentos</h3>
-            <div id="modal-docs-list" style="max-height:60vh; overflow-y:auto; margin-top:10px;"></div>
-            <button type="button" onclick="document.getElementById('docs-modal').classList.add('hidden-modal')" class="btn-primary" style="margin-top:12px; background:#7f8c8d;">Cerrar</button>
+        <div class="modal-content" style="max-width:480px; width:95%;">
+            <h3 style="margin-bottom:16px;">📂 Documentos de Gestión</h3>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+
+                <!-- Documento 1 -->
+                <div style="display:flex; align-items:center; gap:12px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px 14px;">
+                    <div style="font-size:2rem; line-height:1;">📕</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:0.9rem; color:#2c3e50;">Lineamientos de Supervisión ACSO</div>
+                        <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">PDF · Defensoría del Pueblo · 2024</div>
+                    </div>
+                    <a href="#" onclick="return false;" style="background:#2c3e50; color:#fff; border:none; border-radius:6px; padding:5px 12px; font-size:0.78rem; text-decoration:none; white-space:nowrap;">Ver</a>
+                </div>
+
+                <!-- Documento 2 -->
+                <div style="display:flex; align-items:center; gap:12px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px 14px;">
+                    <div style="font-size:2rem; line-height:1;">📘</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:0.9rem; color:#2c3e50;">Cartilla de Derechos Ciudadanos</div>
+                        <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">PDF · Defensoría del Pueblo · 2024</div>
+                    </div>
+                    <a href="#" onclick="return false;" style="background:#2c3e50; color:#fff; border:none; border-radius:6px; padding:5px 12px; font-size:0.78rem; text-decoration:none; white-space:nowrap;">Ver</a>
+                </div>
+
+                <!-- Documento 3 -->
+                <div style="display:flex; align-items:center; gap:12px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px 14px;">
+                    <div style="font-size:2rem; line-height:1;">📗</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:0.9rem; color:#2c3e50;">Protocolo de Intervención en Campo</div>
+                        <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">PDF · Defensoría del Pueblo · 2024</div>
+                    </div>
+                    <a href="#" onclick="return false;" style="background:#2c3e50; color:#fff; border:none; border-radius:6px; padding:5px 12px; font-size:0.78rem; text-decoration:none; white-space:nowrap;">Ver</a>
+                </div>
+
+            </div>
+            <button type="button" onclick="document.getElementById('docs-modal').classList.add('hidden-modal')" class="btn-primary" style="margin-top:16px; background:#7f8c8d; width:100%;">Cerrar</button>
         </div>
     </div>
 

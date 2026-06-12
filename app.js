@@ -894,7 +894,7 @@ saveIncidentBtn?.addEventListener('click', async () => {
         timestamp: Date.now(),
         time: formatAMPM(new Date()),
         tipoRegistro: document.getElementById('modal-title')?.textContent?.includes('Actualización') ? 'Actualización' : 'Incidencia',
-        clasificacion: category,
+        clasificacion: mode === 'actualizacion' ? 'Actualización' : category,
         cantidad: qty,
         description: finalDesc,
         author: activeSession.name,
