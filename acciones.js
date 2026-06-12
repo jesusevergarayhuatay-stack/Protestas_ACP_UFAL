@@ -43,11 +43,11 @@ function populateAcpSelects() {
     const selMedida = document.getElementById('acp-tipo-medida');
     const selDemanda = document.getElementById('acp-tipo-demanda');
 
-    if (selFuente) selFuente.innerHTML = '<option value="">Selecciona fuente...</option>' +
+    if (selFuente) selFuente.innerHTML = '<option value="" disabled selected>Seleccionar fuente...</option>' +
         FUENTES_INFO_ACP.map(f => `<option value="${f}">${f}</option>`).join('');
-    if (selMedida) selMedida.innerHTML = '<option value="">Selecciona...</option>' +
+    if (selMedida) selMedida.innerHTML = '<option value="" disabled selected>Seleccionar tipo de medida...</option>' +
         TIPOS_MEDIDA.map(t => `<option value="${t}">${t}</option>`).join('');
-    if (selDemanda) selDemanda.innerHTML = '<option value="">Selecciona...</option>' +
+    if (selDemanda) selDemanda.innerHTML = '<option value="" disabled selected>Seleccionar tipo de demanda...</option>' +
         TIPOS_DEMANDA.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
@@ -211,8 +211,11 @@ async function saveAcp() {
     try {
         if (acpCurrentId) {
             await fbRef('acciones_colectivas/' + acpCurrentId).set(data);
+            syncAcpToSheets({ ...data, firebaseId: acpCurrentId });
         } else {
-            await fbRef('acciones_colectivas').push(data);
+            const ref = fbRef('acciones_colectivas').push();
+            await ref.set(data);
+            syncAcpToSheets({ ...data, firebaseId: ref.key });
         }
         closeAcpForm();
     } catch (e) {
@@ -224,6 +227,15 @@ async function saveAcp() {
         btn.disabled = false;
         btn.textContent = 'Guardar';
     }
+}
+
+function syncAcpToSheets(data) {
+    if (typeof GOOGLE_SHEETS_URL === 'undefined' || !GOOGLE_SHEETS_URL) return;
+    fetch(GOOGLE_SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ action: 'acp', ...data })
+    }).catch(e => console.warn('[Sheets sync acp]', e));
 }
 
 async function uploadAcpDocumentos() {

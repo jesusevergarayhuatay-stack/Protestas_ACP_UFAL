@@ -136,6 +136,107 @@
         @media (min-width: 1024px) {
             .sessions-card { height: 800px; }
         }
+
+        /* ===== TABS NAVEGACIÓN ===== */
+        .admin-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 8px;
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+        .admin-tab-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            background: #f0f4f8;
+            color: #555;
+            transition: all 0.2s;
+        }
+        .admin-tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== PANEL REGISTROS ACP/ALERTAS ===== */
+        #panel-registros { display: none; }
+        #panel-registros.active { display: block; }
+        #panel-supervision { display: block; }
+        #panel-supervision.hidden-panel { display: none; }
+
+        .registros-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .registros-toolbar input,
+        .registros-toolbar select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1.5px solid #ddd;
+            font-size: 0.85rem;
+        }
+        .registros-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .registros-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            background: white;
+        }
+        .registros-table thead tr {
+            background: var(--primary);
+            color: white;
+        }
+        .registros-table th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .registros-table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: top;
+        }
+        .registros-table tbody tr:hover { background: #f9fafb; }
+        .badge-tipo {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .badge-alerta { background: #fdecea; color: #c0392b; }
+        .badge-acp { background: #e8f4fd; color: #1a5276; }
+        .badge-violencia { background: #fdecea; color: #c0392b; }
+        .badge-ok { background: #eafaf1; color: #196f3d; }
+        .link-fuente {
+            color: #2980b9;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        .link-fuente:hover { text-decoration: underline; }
+        .registros-empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 
@@ -162,6 +263,16 @@
     </header>
 
     <main class="dashboard-container">
+
+        <!-- Navegación de Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab-btn active" onclick="switchAdminTab('supervision', this)">📋 Supervisión de Campo</button>
+            <button class="admin-tab-btn" onclick="switchAdminTab('registros', this)">🗂️ Registros ACP & Alertas</button>
+        </div>
+
+        <!-- PANEL 1: SUPERVISIÓN (existente) -->
+        <div id="panel-supervision">
+
         <!-- Estadísticas -->
         <section class="stats-grid">
             <div class="stat-card"><h3>Activas</h3><span class="stat-value" id="stat-active" style="color:var(--success);">0</span></div>
@@ -191,6 +302,63 @@
                 <div id="reports-list"></div>
             </div>
         </div>
+        </div> <!-- /panel-supervision -->
+
+        <!-- PANEL 2: REGISTROS ACP & ALERTAS -->
+        <div id="panel-registros">
+            <div style="background:white; border-radius:20px; box-shadow:var(--shadow); padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+                    <h2 style="margin:0; font-size:1.1rem; color:var(--primary);">🗂️ Registros de ACP y Alertas</h2>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button id="btn-reporte-alertas-acp" class="btn-header" style="background:#c0392b;" onclick="generarReporteAlertasACP()">📋 Generar Reporte PDF</button>
+                        <button id="btn-export-registros" class="btn-header" style="background:#8e44ad;">📊 Exportar CSV</button>
+                    </div>
+                </div>
+
+                <!-- Toolbar de filtros -->
+                <div class="registros-toolbar">
+                    <select id="filtro-tipo-registro">
+                        <option value="all">Todos los tipos</option>
+                        <option value="alerta">Solo Alertas</option>
+                        <option value="acp">Solo ACP</option>
+                    </select>
+                    <input type="date" id="filtro-fecha-desde" placeholder="Desde">
+                    <input type="date" id="filtro-fecha-hasta" placeholder="Hasta">
+                    <input type="text" id="filtro-busqueda" placeholder="🔍 Buscar por nombre..." style="min-width:200px;">
+                    <button onclick="aplicarFiltrosRegistros()" class="btn-header" style="background:var(--primary);">Filtrar</button>
+                    <button onclick="limpiarFiltrosRegistros()" class="btn-header" style="background:#95a5a6;">Limpiar</button>
+                </div>
+
+                <!-- Contador -->
+                <p style="font-size:0.82rem; color:#777; margin-bottom:10px;">
+                    Mostrando <strong id="registros-count">0</strong> registros
+                </p>
+
+                <!-- Tabla -->
+                <div class="registros-table-wrap">
+                    <table class="registros-table" id="tabla-registros">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Fecha</th>
+                                <th>Nombre del Evento</th>
+                                <th>Clasificación / Violencia</th>
+                                <th>Fuente</th>
+                                <th>Enlace</th>
+                                <th>Ubicación</th>
+                                <th>Personas</th>
+                                <th>Nivel Riesgo</th>
+                                <th>Registrado por</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-registros-body">
+                            <tr><td colspan="10" class="registros-empty">Cargando registros...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- MODAL OBSERVACIONES PARA PDF -->

@@ -682,46 +682,42 @@ async function generarReportePDF(observaciones = '', coordinador = '') {
         const NARANJA   = [230, 126, 34];
         const MORADO    = [142, 68, 173];
 
+        // ========== LOGOS ==========
+        const logos = await cargarLogos();
+
         // ========== ENCABEZADO ==========
         doc.setFillColor(...AZUL_DP);
-        doc.rect(0, 0, W, 36, 'F');
+        doc.rect(0, 0, W, 38, 'F');
 
-        // Círculo logo
-        doc.setFillColor(255, 255, 255);
-        doc.circle(MARGIN + 8, 18, 8, 'F');
-        doc.setTextColor(...AZUL_DP);
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'bold');
-        doc.text('DP', MARGIN + 8, 19.5, { align: 'center' });
+        // Logos en la esquina superior derecha
+        if (logos.logoDP)  doc.addImage(logos.logoDP.data,  logos.logoDP.fmt,  W - MARGIN - 46, 4, 24, 22);
+        if (logos.logo30)  doc.addImage(logos.logo30.data,  logos.logo30.fmt,  W - MARGIN - 20, 6, 18, 18);
 
-        // Título
+        // Título (izquierda)
         doc.setTextColor(...BLANCO);
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.text('Defensoría del Pueblo — Reporte Diario de Supervisión', MARGIN + 20, 13);
+        doc.text('Defensoría del Pueblo — Reporte Diario de Supervisión', MARGIN, 13);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.text('Adjuntía para la Prevención de Conflictos Sociales y la Gobernabilidad', MARGIN + 20, 19);
+        doc.text('Adjuntía para la Prevención de Conflictos Sociales y la Gobernabilidad', MARGIN, 20);
 
-        // Fecha y turno (derecha)
+        // Fecha y turno (bajo el título, izquierda)
         const fechaFiltro = document.getElementById('filter-date')?.value || new Date().toISOString().split('T')[0];
         const [anio, mes, dia] = fechaFiltro.split('-');
         const fechaLegible = `${dia}/${mes}/${anio}`;
         const protestFiltro = document.getElementById('filter-protest')?.value;
         const turnoLabel = protestFiltro && protestFiltro !== 'all' ? protestFiltro : 'Todas las movilizaciones';
 
-        doc.setFontSize(8.5);
-        doc.setFont('helvetica', 'bold');
-        doc.text(fechaLegible, W - MARGIN, 13, { align: 'right' });
         doc.setFontSize(7.5);
-        doc.setFont('helvetica', 'normal');
-        doc.text(turnoLabel, W - MARGIN, 19, { align: 'right' });
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${fechaLegible}  ·  ${turnoLabel}`, MARGIN, 27);
         const horaGen = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
         doc.setFontSize(6.5);
         doc.setTextColor(200, 215, 235);
         doc.text(`Generado: ${horaGen}`, W - MARGIN, 27, { align: 'right' });
 
-        y = 44;
+        y = 46;
 
         // ========== DATOS DE SESIONES ==========
         const sessions = Object.values(allSessionsOfDate);
@@ -980,6 +976,49 @@ async function generarReportePDF(observaciones = '', coordinador = '') {
     }
 }
 
+// =============================================
+// HELPER: CARGA DE LOGOS PARA PDF
+// =============================================
+let _cachedLogos = null; // se resetea al recargar la página
+
+async function cargarLogos() {
+    if (_cachedLogos) return _cachedLogos;
+
+    const toEntry = src => new Promise(resolve => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', src, true);
+        xhr.responseType = 'blob';
+        xhr.onload = () => {
+            // status 0 = file://, 200 = http
+            if (xhr.status === 200 || xhr.status === 0) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result;
+                    const mime = (dataUrl.split(';')[0].split(':')[1] || '').toLowerCase();
+                    const fmt = (mime.includes('jpeg') || mime.includes('jpg')) ? 'JPEG' : 'PNG';
+                    console.log(`[Logo OK] ${src} → ${fmt}`);
+                    resolve({ data: dataUrl, fmt });
+                };
+                reader.onerror = () => { console.warn('[Logo] FileReader falló:', src); resolve(null); };
+                reader.readAsDataURL(xhr.response);
+            } else {
+                console.warn(`[Logo] HTTP ${xhr.status} para ${src}`);
+                resolve(null);
+            }
+        };
+        xhr.onerror = () => { console.warn('[Logo] XHR error:', src); resolve(null); };
+        xhr.send();
+    });
+
+    const [logoDP, logo30] = await Promise.all([
+        toEntry('./logodpblanco.png'),
+        toEntry('./30blanco.jpeg')
+    ]);
+    console.log('[Logos cargados]', { logoDP: !!logoDP, logo30: !!logo30 });
+    _cachedLogos = { logoDP, logo30 };
+    return _cachedLogos;
+}
+
 function showToast(message, color = '#2c3e50') {
     const toast = document.createElement('div');
     toast.style.cssText = `
@@ -994,4 +1033,500 @@ function showToast(message, color = '#2c3e50') {
 }
 
 initDashboard();
+
+// =============================================
+// MÓDULO: REGISTROS ACP & ALERTAS (Admin)
+// =============================================
+
+let _allRegistros = [];      // todos los registros combinados
+let _registrosFiltrados = []; // tras aplicar filtros
+
+function switchAdminTab(tab, btnEl) {
+    document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+    if (tab === 'supervision') {
+        document.getElementById('panel-supervision').style.display = 'block';
+        document.getElementById('panel-registros').style.display = 'none';
+    } else {
+        document.getElementById('panel-supervision').style.display = 'none';
+        document.getElementById('panel-registros').style.display = 'block';
+        loadRegistros();
+    }
+}
+
+function loadRegistros() {
+    _allRegistros = [];
+    let alertasDone = false, acpDone = false;
+
+    const refAlertas = fbRef('alertas');
+    const refAcp = fbRef('acciones_colectivas');
+    if (!refAlertas || !refAcp) return;
+
+    refAlertas.orderByChild('timestamp').limitToLast(200).once('value', snap => {
+        const data = snap.val() || {};
+        Object.entries(data).forEach(([id, v]) => {
+            _allRegistros.push({ id, _tipo: 'alerta', ...v });
+        });
+        alertasDone = true;
+        if (acpDone) renderTablaRegistros();
+    });
+
+    refAcp.orderByChild('timestamp').limitToLast(200).once('value', snap => {
+        const data = snap.val() || {};
+        Object.entries(data).forEach(([id, v]) => {
+            _allRegistros.push({ id, _tipo: 'acp', ...v });
+        });
+        acpDone = true;
+        if (alertasDone) renderTablaRegistros();
+    });
+}
+
+function renderTablaRegistros() {
+    // Aplicar filtros
+    const tipo = document.getElementById('filtro-tipo-registro')?.value || 'all';
+    const desde = document.getElementById('filtro-fecha-desde')?.value;
+    const hasta = document.getElementById('filtro-fecha-hasta')?.value;
+    const busqueda = (document.getElementById('filtro-busqueda')?.value || '').toLowerCase();
+
+    _registrosFiltrados = _allRegistros.filter(r => {
+        if (tipo !== 'all' && r._tipo !== tipo) return false;
+        const fecha = r.fechaEvento || r.fecha || '';
+        if (desde && fecha && fecha < desde) return false;
+        if (hasta && fecha && fecha > hasta) return false;
+        if (busqueda && !(r.nombreEvento || '').toLowerCase().includes(busqueda)) return false;
+        return true;
+    });
+
+    // Ordenar por fecha desc
+    _registrosFiltrados.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    const tbody = document.getElementById('tabla-registros-body');
+    const count = document.getElementById('registros-count');
+    if (!tbody) return;
+
+    if (count) count.textContent = _registrosFiltrados.length;
+
+    if (!_registrosFiltrados.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="registros-empty">No hay registros que coincidan con los filtros.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = _registrosFiltrados.map(r => {
+        const esAlerta = r._tipo === 'alerta';
+        const fecha = r.fechaEvento || r.fecha || (r.timestamp ? new Date(r.timestamp).toLocaleDateString('es-PE') : '—');
+        const tipoBadge = esAlerta
+            ? '<span class="badge-tipo badge-alerta">🚨 Alerta</span>'
+            : '<span class="badge-tipo badge-acp">🤝 ACP</span>';
+
+        const clasificacion = esAlerta
+            ? (r.clasificacion || '—')
+            : (r.huboViolencia === 'Sí'
+                ? '<span class="badge-tipo badge-violencia">Con violencia</span>'
+                : '<span class="badge-tipo badge-ok">Sin violencia</span>');
+
+        const fuente = r.fuenteInfo || '—';
+        const enlace = r.linkFuente
+            ? `<a href="${r.linkFuente}" target="_blank" class="link-fuente">🔗 Ver</a>`
+            : '—';
+
+        const ubicacion = (r.ubicaciones || []).map(u => u.departamento).filter(Boolean).join(', ') || '—';
+        const personas = r.cantidadPersonas || 0;
+        const riesgo = esAlerta ? (r.nivelRiesgo || '—') : '—';
+        const registradoPor = r.registradoPor || '—';
+
+        return `<tr>
+            <td>${tipoBadge}</td>
+            <td>${fecha}</td>
+            <td style="font-weight:600;">${r.nombreEvento || '—'}</td>
+            <td>${clasificacion}</td>
+            <td>${fuente}</td>
+            <td>${enlace}</td>
+            <td style="color:#555;">${ubicacion}</td>
+            <td style="text-align:center;">${personas}</td>
+            <td>${riesgo}</td>
+            <td style="color:#777; font-size:0.78rem;">${registradoPor}</td>
+        </tr>`;
+    }).join('');
+}
+
+function aplicarFiltrosRegistros() {
+    renderTablaRegistros();
+}
+
+function limpiarFiltrosRegistros() {
+    const ids = ['filtro-tipo-registro', 'filtro-fecha-desde', 'filtro-fecha-hasta', 'filtro-busqueda'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = el.tagName === 'SELECT' ? 'all' : '';
+    });
+    renderTablaRegistros();
+}
+
+// Exportar CSV
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-export-registros')?.addEventListener('click', exportarRegistrosCSV);
+});
+
+function exportarRegistrosCSV() {
+    if (!_registrosFiltrados.length) return alert('No hay registros para exportar.');
+    const headers = ['Tipo', 'Fecha', 'Nombre del Evento', 'Clasificación/Violencia', 'Fuente', 'Enlace', 'Ubicación', 'Personas', 'Nivel Riesgo', 'Registrado por'];
+    const rows = _registrosFiltrados.map(r => {
+        const fecha = r.fechaEvento || r.fecha || '';
+        const clasificacion = r._tipo === 'alerta' ? (r.clasificacion || '') : (r.huboViolencia || '');
+        const ubicacion = (r.ubicaciones || []).map(u => u.departamento).filter(Boolean).join(' / ');
+        return [
+            r._tipo === 'alerta' ? 'Alerta' : 'ACP',
+            fecha,
+            r.nombreEvento || '',
+            clasificacion,
+            r.fuenteInfo || '',
+            r.linkFuente || '',
+            ubicacion,
+            r.cantidadPersonas || 0,
+            r._tipo === 'alerta' ? (r.nivelRiesgo || '') : '',
+            r.registradoPor || ''
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `registros_acp_alertas_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ CSV exportado correctamente', '#27ae60');
+}
+
+window.switchAdminTab = switchAdminTab;
+window.aplicarFiltrosRegistros = aplicarFiltrosRegistros;
+window.limpiarFiltrosRegistros = limpiarFiltrosRegistros;
+
+// =============================================
+// GENERADOR: REPORTE PDF DE ALERTAS Y ACP
+// Formato: A4 Horizontal — estilo institucional
+// =============================================
+
+async function generarReporteAlertasACP() {
+    const btn = document.getElementById('btn-reporte-alertas-acp');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generando... ⏳'; }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        // ── A4 LANDSCAPE ──────────────────────────
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const logos = await cargarLogos();
+
+        const W      = 297;   // ancho A4 landscape
+        const H      = 210;   // alto  A4 landscape
+        const MARGIN = 13;
+        const COL_W  = W - MARGIN * 2;
+
+        // ── PALETA ────────────────────────────────
+        const AZUL_DP   = [0,  51, 102];
+        const AZUL_HDR  = [13, 71, 161];   // cabecera de tabla
+        const BLANCO    = [255, 255, 255];
+        const GRIS_CLR  = [247, 249, 252];
+        const GRIS_TXT  = [80,  85,  95];
+        const GRIS_LINE = [210, 215, 225];
+        const ROJO      = [192,  57,  43];
+        const NARANJA   = [211,  84,   0];
+        const AMARILLO  = [183, 149,   0];
+        const VERDE     = [ 30, 130,  76];
+
+        // ── FECHA ─────────────────────────────────
+        const ahora   = new Date();
+        const year    = ahora.getFullYear();
+        const DIAS    = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+        const MESES   = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+                         'septiembre','octubre','noviembre','diciembre'];
+        const fechaLarga = `${DIAS[ahora.getDay()]}, ${ahora.getDate()} de ${MESES[ahora.getMonth()]} de ${year}`;
+        const numDia     = String(ahora.getDate()).padStart(2, '0');
+        const numMes     = String(ahora.getMonth() + 1).padStart(2, '0');
+        const fechaCorta = `${ahora.getFullYear()}-${numMes}-${numDia}`;
+
+        // ── REGISTROS ─────────────────────────────
+        const alertas = _allRegistros
+            .filter(r => r._tipo === 'alerta')
+            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        const acps = _allRegistros
+            .filter(r => r._tipo === 'acp')
+            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        // ── COLORES POR NIVEL DE RIESGO ───────────
+        function riesgoStyle(nivel) {
+            const n = (nivel || '').toLowerCase();
+            if (n.includes('muy alto'))                          return { text: ROJO,     bg: [253,237,236] };
+            if (n.includes('alto'))                              return { text: NARANJA,  bg: [253,245,236] };
+            if (n.includes('medio') || n.includes('intermedio')) return { text: AMARILLO, bg: [254,249,231] };
+            if (n.includes('bajo'))                              return { text: VERDE,    bg: [234,250,241] };
+            return { text: GRIS_TXT, bg: BLANCO };
+        }
+
+        // ─────────────────────────────────────────
+        // ENCABEZADO DE PÁGINA
+        // ─────────────────────────────────────────
+        function drawHeader(subtitulo) {
+            // Banda azul superior
+            doc.setFillColor(...AZUL_DP);
+            doc.rect(0, 0, W, 32, 'F');
+
+            // Logos (izquierda)
+            if (logos.logoDP) doc.addImage(logos.logoDP.data, logos.logoDP.fmt, MARGIN, 3, 20, 18);
+            if (logos.logo30) doc.addImage(logos.logo30.data, logos.logo30.fmt, MARGIN + 22, 5, 15, 14);
+
+            // Institución (centro-izquierda)
+            doc.setTextColor(...BLANCO);
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Adjuntía para la Prevención de Conflictos Sociales y la Gobernabilidad',
+                MARGIN + 40, 11);
+
+            // Título del reporte (centro)
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('REPORTE DE ALERTAS DEFENSORIALES', W / 2, 19, { align: 'center' });
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'normal');
+            doc.text('UNIDAD FUNCIONAL DE PREVENCIÓN Y ALERTAS', W / 2, 25, { align: 'center' });
+
+            // Fecha (derecha)
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'bold');
+            doc.text(fechaLarga, W - MARGIN, 14, { align: 'right' });
+
+            // Subtítulo de sección (banda gris bajo el header)
+            if (subtitulo) {
+                doc.setFillColor(240, 244, 250);
+                doc.rect(0, 32, W, 8, 'F');
+                doc.setTextColor(...AZUL_DP);
+                doc.setFontSize(8.5);
+                doc.setFont('helvetica', 'bold');
+                doc.text(subtitulo, MARGIN, 37.5);
+            }
+        }
+
+        // ─────────────────────────────────────────
+        // PIE DE PÁGINA
+        // ─────────────────────────────────────────
+        function drawFooter(pageNum, total) {
+            doc.setDrawColor(...GRIS_LINE);
+            doc.line(MARGIN, H - 10, W - MARGIN, H - 10);
+            doc.setFontSize(6.5);
+            doc.setTextColor(...GRIS_TXT);
+            doc.setFont('helvetica', 'normal');
+            doc.text(
+                'Defensoría del Pueblo del Perú  ·  Adjuntía para la Prevención de Conflictos Sociales y la Gobernabilidad',
+                MARGIN, H - 6
+            );
+            doc.text(`Página ${pageNum} de ${total}`, W - MARGIN, H - 6, { align: 'right' });
+        }
+
+        // ─────────────────────────────────────────
+        // PÁGINA 1 — ALERTAS DEFENSORIALES
+        // ─────────────────────────────────────────
+        const subAlertas = `1.   Registro de alertas defensoriales`;
+        drawHeader(subAlertas);
+        let y = 46;
+
+        if (alertas.length > 0) {
+            const rows = alertas.map((r, i) => {
+                const codigo  = `AlerT ${String(i + 1).padStart(3,'0')}-${year}`;
+                const ubic    = (r.ubicaciones || []).map(u =>
+                    [u.departamento, u.provincia, u.distrito].filter(Boolean).join(', ')
+                ).join('\n') || '—';
+                const actores = (r.actores || []).map(a => a.nombre || a.tipo || '').filter(Boolean).join('\n') || '—';
+                const demanda = r.demandas || r.descripcion || '—';
+                const medida  = r.tipoMedida || (r.fechaEvento ? `Sin medida definida\n${r.fechaEvento}` : '—');
+                const fuente  = [r.fuenteInfo, r.linkFuente ? r.linkFuente : ''].filter(Boolean).join('\n') || '—';
+                const riesgo  = r.nivelRiesgo || '—';
+                return [codigo, r.clasificacion || '—', ubic, actores, demanda, medida, fuente, riesgo];
+            });
+
+            doc.autoTable({
+                startY: y,
+                head: [['Código','Clasificación de alerta','Ubicación\n(Dpto., Provincia, Distrito)','Actores','Demandas','Medida de protesta','Fuente','Riesgo*']],
+                body: rows,
+                styles: {
+                    fontSize: 7,
+                    cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
+                    textColor: [40, 45, 55],
+                    valign: 'top',
+                    overflow: 'linebreak',
+                    lineColor: GRIS_LINE,
+                    lineWidth: 0.15,
+                },
+                headStyles: {
+                    fillColor: AZUL_HDR,
+                    textColor: BLANCO,
+                    fontStyle: 'bold',
+                    fontSize: 7,
+                    cellPadding: { top: 4, right: 3, bottom: 4, left: 3 },
+                    halign: 'center',
+                    valign: 'middle',
+                },
+                alternateRowStyles: { fillColor: GRIS_CLR },
+                columnStyles: {
+                    0: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
+                    1: { cellWidth: 34 },
+                    2: { cellWidth: 36 },
+                    3: { cellWidth: 36 },
+                    4: { cellWidth: 62 },
+                    5: { cellWidth: 34 },
+                    6: { cellWidth: 26 },
+                    7: { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+                },
+                margin: { left: MARGIN, right: MARGIN },
+                didParseCell: data => {
+                    if (data.section === 'body' && data.column.index === 7) {
+                        const s = riesgoStyle(data.cell.raw);
+                        data.cell.styles.textColor    = s.text;
+                        data.cell.styles.fillColor    = s.bg;
+                        data.cell.styles.fontStyle    = 'bold';
+                    }
+                },
+                // Repetir header en cada página nueva de esta sección
+                showHead: 'everyPage',
+                didDrawPage: data => {
+                    const pg = doc.getNumberOfPages();
+                    drawFooter(pg, '—');
+                    // Si no es la primera página de la sección, redibujar encabezado
+                    if (data.pageNumber > 1) {
+                        drawHeader(subAlertas);
+                    }
+                }
+            });
+
+            y = doc.lastAutoTable.finalY + 5;
+
+            // Nota metodológica
+            doc.setFontSize(6.2);
+            doc.setTextColor(...GRIS_TXT);
+            doc.setFont('helvetica', 'italic');
+            const nota1 = `*El nivel de riesgo se determina evaluando: (i) impacto en la afectación de los derechos fundamentales y (p) probabilidad de que el evento ocurra.`;
+            const nota2 = `**Las alertas referidas a pronunciamientos, memoriales u otros documentos que dan a conocer demandas sociales se publican por única vez en la alerta del día.`;
+            doc.text(doc.splitTextToSize(nota1, COL_W), MARGIN, y);
+            y += 5;
+            doc.text(doc.splitTextToSize(nota2, COL_W), MARGIN, y);
+        } else {
+            doc.setFontSize(8.5);
+            doc.setTextColor(...GRIS_TXT);
+            doc.setFont('helvetica', 'italic');
+            doc.text('No hay alertas defensoriales registradas para el período seleccionado.', MARGIN, y + 8);
+            y += 18;
+        }
+
+        // ─────────────────────────────────────────
+        // SECCIÓN ACP (nueva página si es necesario)
+        // ─────────────────────────────────────────
+        if (acps.length > 0) {
+            doc.addPage();
+            const subACP = `2.   Registro de Acciones Colectivas de Protesta (ACP)`;
+            drawHeader(subACP);
+            y = 46;
+
+            const acpRows = acps.map((r, i) => {
+                const codigo  = `ACP ${String(i + 1).padStart(3,'0')}-${year}`;
+                const ubic    = (r.ubicaciones || []).map(u =>
+                    [u.departamento, u.provincia, u.distrito].filter(Boolean).join(', ')
+                ).join('\n') || '—';
+                const actores = (r.actores || []).map(a => a.nombre || a.tipo || '').filter(Boolean).join('\n') || '—';
+                const demanda = r.demandas || r.descripcion || '—';
+                const medida  = r.tipoMedida || '—';
+                const viol    = r.huboViolencia || '—';
+                const heridos = (r.heridas   || []).length ? String((r.heridas   || []).length) : '0';
+                const deteni  = (r.detenidas || []).length ? String((r.detenidas || []).length) : '0';
+                const fuente  = [r.fuenteInfo, r.linkFuente ? r.linkFuente : ''].filter(Boolean).join('\n') || '—';
+                return [codigo, r.nombreEvento || '—', r.fechaEvento || '—', ubic, actores, demanda, medida, viol, heridos, deteni, fuente];
+            });
+
+            doc.autoTable({
+                startY: y,
+                head: [['Código','Evento','Fecha','Ubicación','Actores','Demandas','Medida','Violencia','Heridos','Detenidos','Fuente']],
+                body: acpRows,
+                styles: {
+                    fontSize: 7,
+                    cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+                    textColor: [40, 45, 55],
+                    valign: 'top',
+                    overflow: 'linebreak',
+                    lineColor: GRIS_LINE,
+                    lineWidth: 0.15,
+                },
+                headStyles: {
+                    fillColor: AZUL_HDR,
+                    textColor: BLANCO,
+                    fontStyle: 'bold',
+                    fontSize: 7,
+                    cellPadding: { top: 4, right: 2, bottom: 4, left: 2 },
+                    halign: 'center',
+                    valign: 'middle',
+                },
+                alternateRowStyles: { fillColor: GRIS_CLR },
+                columnStyles: {
+                    0:  { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+                    1:  { cellWidth: 32 },
+                    2:  { cellWidth: 18, halign: 'center' },
+                    3:  { cellWidth: 32 },
+                    4:  { cellWidth: 28 },
+                    5:  { cellWidth: 52 },
+                    6:  { cellWidth: 28 },
+                    7:  { cellWidth: 15, halign: 'center', fontStyle: 'bold' },
+                    8:  { cellWidth: 13, halign: 'center' },
+                    9:  { cellWidth: 13, halign: 'center' },
+                    10: { cellWidth: 16 },
+                },
+                margin: { left: MARGIN, right: MARGIN },
+                didParseCell: data => {
+                    if (data.section === 'body' && data.column.index === 7) {
+                        if ((data.cell.raw || '').toLowerCase() === 'sí') {
+                            data.cell.styles.textColor = ROJO;
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.fillColor = [253, 237, 236];
+                        }
+                    }
+                    if (data.section === 'body' && (data.column.index === 8 || data.column.index === 9)) {
+                        const val = parseInt(data.cell.raw);
+                        if (val > 0) {
+                            data.cell.styles.textColor = ROJO;
+                            data.cell.styles.fontStyle = 'bold';
+                        }
+                    }
+                },
+                showHead: 'everyPage',
+                didDrawPage: data => {
+                    const pg = doc.getNumberOfPages();
+                    drawFooter(pg, '—');
+                    if (data.pageNumber > 1) drawHeader(subACP);
+                }
+            });
+        }
+
+        // ─────────────────────────────────────────
+        // PAGINACIÓN FINAL (actualizar "de N")
+        // ─────────────────────────────────────────
+        const totalPg = doc.getNumberOfPages();
+        for (let p = 1; p <= totalPg; p++) {
+            doc.setPage(p);
+            // Sobreescribir el número de página en el pie
+            doc.setFillColor(...BLANCO);
+            doc.rect(W - MARGIN - 28, H - 9, 28, 5, 'F');
+            doc.setFontSize(6.5);
+            doc.setTextColor(...GRIS_TXT);
+            doc.text(`Página ${p} de ${totalPg}`, W - MARGIN, H - 6, { align: 'right' });
+        }
+
+        const nombreArchivo = `reporte_alertas_acp_${fechaCorta}.pdf`;
+        doc.save(nombreArchivo);
+        showToast('✅ Reporte generado: ' + nombreArchivo, '#003366');
+
+    } catch (e) {
+        console.error('[REPORTE] Error:', e);
+        alert('Error al generar reporte: ' + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '📋 Generar Reporte PDF'; }
+    }
+}
+
+window.generarReporteAlertasACP = generarReporteAlertasACP;
 

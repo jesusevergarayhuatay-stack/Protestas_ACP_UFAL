@@ -1,6 +1,27 @@
 // =========================================================================================
-// GOOGLE APPS SCRIPT v4.0 - HYBRID REAL-TIME + DASHBOARD SUPPORT
+// GOOGLE APPS SCRIPT v5.0 - HYBRID REAL-TIME + ALERTAS + ACP
 // =========================================================================================
+
+// ── CABECERAS DE HOJAS ────────────────────────────────────────────────────────────────────
+var HEADERS_ALERTAS = [
+    "Código", "Fecha Registro", "Fecha Evento", "Nombre del Evento",
+    "Clasificación", "Nivel de Riesgo", "Probabilidad", "Impacto",
+    "Tipo de Medida", "Tipo de Demanda", "Demandas", "Descripción",
+    "Fuente de Información", "Link Fuente",
+    "Ubicaciones", "Actores", "Conflicto Vinculado",
+    "Documentos (URLs)", "Registrado Por", "ID Firebase"
+];
+
+var HEADERS_ACP = [
+    "Código", "Fecha Registro", "Fecha Evento", "Nombre del Evento",
+    "Tipo de Medida", "Tipo de Demanda", "Demandas", "Descripción",
+    "Fuente de Información", "Link Fuente",
+    "Ubicaciones", "Actores", "¿Hubo Violencia?",
+    "Cantidad Personas", "Cantidad Terceros",
+    "N° Heridos", "N° Detenidos", "N° Fallecidos", "N° Desaparecidos",
+    "Heridos - Detalle", "Detenidos - Detalle", "Fallecidos - Detalle", "Desaparecidos - Detalle",
+    "Conflicto Vinculado", "Documentos (URLs)", "Registrado Por", "ID Firebase"
+];
 
 // 1. DO GET: PARA EL TABLERO Y APP (LECTURA DE TRES HOJAS)
 function doGet(e) {
@@ -194,6 +215,142 @@ function doPost(e) {
             }
         }
 
+        // --- ACCIÓN: GUARDAR ALERTA DEFENSORIAL ---
+        else if (action === 'alerta') {
+            var sheetAlertas = getOrCreateSheetWithHeaders(ss, "Alertas", HEADERS_ALERTAS);
+            var d = data;
+            var year = new Date().getFullYear();
+
+            // Buscar si ya existe el registro (actualización)
+            var existingRow = d.firebaseId ? findRowByFirebaseId(sheetAlertas, 20, d.firebaseId) : -1;
+
+            // Formatear arrays
+            var ubicStr = (d.ubicaciones || [])
+                .map(function(u) { return [u.departamento, u.provincia, u.distrito, u.poblado].filter(Boolean).join(', '); })
+                .filter(Boolean).join(' | ');
+            var actoresStr = (d.actores || [])
+                .map(function(a) { return [a.nombre, a.tipo, a.rol].filter(Boolean).join(' - '); })
+                .filter(Boolean).join(' | ');
+            var docsStr = (d.documentos || [])
+                .map(function(x) { return x.url || ''; })
+                .filter(Boolean).join(' | ');
+            var conflicto = d.conflictoVinculado
+                ? (d.conflictoVinculado.nombre || d.conflictoVinculado.id || JSON.stringify(d.conflictoVinculado))
+                : '';
+
+            // Código secuencial
+            var lastRow = sheetAlertas.getLastRow();
+            var seqNum = existingRow > 0 ? '' : String(Math.max(lastRow, 1)).padStart(3, '0');
+            var codigo = existingRow > 0
+                ? sheetAlertas.getRange(existingRow, 1).getValue()
+                : 'AlerT-' + seqNum + '-' + year;
+
+            var row = [
+                codigo,
+                d.fecha || new Date().toISOString().split('T')[0],
+                d.fechaEvento || '',
+                d.nombreEvento || '',
+                d.clasificacion || '',
+                d.nivelRiesgo || '',
+                d.riesgoProbabilidad || '',
+                d.riesgoImpacto || '',
+                d.tipoMedida || '',
+                d.tipoDemanda || '',
+                d.demandas || '',
+                d.descripcion || '',
+                d.fuenteInfo || '',
+                d.linkFuente || '',
+                ubicStr,
+                actoresStr,
+                conflicto,
+                docsStr,
+                d.registradoPor || '',
+                d.firebaseId || ''
+            ];
+
+            if (existingRow > 0) {
+                sheetAlertas.getRange(existingRow, 1, 1, row.length).setValues([row]);
+            } else {
+                sheetAlertas.appendRow(row);
+                // Colorear fila según riesgo
+                colorearFilaRiesgo(sheetAlertas, sheetAlertas.getLastRow(), d.nivelRiesgo || '');
+            }
+        }
+
+        // --- ACCIÓN: GUARDAR ACP ---
+        else if (action === 'acp') {
+            var sheetACP = getOrCreateSheetWithHeaders(ss, "ACP", HEADERS_ACP);
+            var d = data;
+            var year = new Date().getFullYear();
+
+            var existingRow = d.firebaseId ? findRowByFirebaseId(sheetACP, 27, d.firebaseId) : -1;
+
+            var ubicStr = (d.ubicaciones || [])
+                .map(function(u) { return [u.departamento, u.provincia, u.distrito, u.poblado].filter(Boolean).join(', '); })
+                .filter(Boolean).join(' | ');
+            var actoresStr = (d.actores || [])
+                .map(function(a) { return [a.nombre, a.tipo, a.rol].filter(Boolean).join(' - '); })
+                .filter(Boolean).join(' | ');
+
+            function detallePersonas(arr) {
+                return (arr || []).map(function(p) {
+                    return [p.nombre, p.edad ? p.edad + ' años' : '', p.genero, p.condicion, p.hospital].filter(Boolean).join(', ');
+                }).filter(Boolean).join(' | ');
+            }
+
+            var docsStr = (d.documentos || []).map(function(x) { return x.url || ''; }).filter(Boolean).join(' | ');
+            var conflicto = d.conflictoVinculado
+                ? (d.conflictoVinculado.nombre || d.conflictoVinculado.id || JSON.stringify(d.conflictoVinculado))
+                : '';
+
+            var lastRow = sheetACP.getLastRow();
+            var seqNum = existingRow > 0 ? '' : String(Math.max(lastRow, 1)).padStart(3, '0');
+            var codigo = existingRow > 0
+                ? sheetACP.getRange(existingRow, 1).getValue()
+                : 'ACP-' + seqNum + '-' + year;
+
+            var row = [
+                codigo,
+                d.fecha || new Date().toISOString().split('T')[0],
+                d.fechaEvento || '',
+                d.nombreEvento || '',
+                d.tipoMedida || '',
+                d.tipoDemanda || '',
+                d.demandas || '',
+                d.descripcion || '',
+                d.fuenteInfo || '',
+                d.linkFuente || '',
+                ubicStr,
+                actoresStr,
+                d.huboViolencia || '',
+                d.cantidadPersonas || 0,
+                d.cantidadTerceros || 0,
+                (d.heridas || []).length,
+                (d.detenidas || []).length,
+                (d.fallecidas || []).length,
+                (d.desaparecidas || []).length,
+                detallePersonas(d.heridas),
+                detallePersonas(d.detenidas),
+                detallePersonas(d.fallecidas),
+                detallePersonas(d.desaparecidas),
+                conflicto,
+                docsStr,
+                d.registradoPor || '',
+                d.firebaseId || ''
+            ];
+
+            if (existingRow > 0) {
+                sheetACP.getRange(existingRow, 1, 1, row.length).setValues([row]);
+            } else {
+                sheetACP.appendRow(row);
+                // Colorear si hubo violencia
+                if ((d.huboViolencia || '').toLowerCase() === 'sí') {
+                    sheetACP.getRange(sheetACP.getLastRow(), 1, 1, row.length)
+                        .setBackground('#fce4e4');
+                }
+            }
+        }
+
         // --- ACCIÓN: GENERAR REPORTE DOC ---
         else if (action === 'generate_report') {
             var templateId = data.templateId;
@@ -297,6 +454,48 @@ function getLastRowInColumn(sheet, col) {
         }
     }
     return 0;
+}
+
+// Crear hoja con cabeceras si no existe
+function getOrCreateSheetWithHeaders(ss, name, headers) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) {
+        sheet = ss.insertSheet(name);
+        sheet.appendRow(headers);
+        // Formatear fila de cabecera
+        var headerRange = sheet.getRange(1, 1, 1, headers.length);
+        headerRange.setBackground('#0d47a1');
+        headerRange.setFontColor('#ffffff');
+        headerRange.setFontWeight('bold');
+        headerRange.setWrap(true);
+        sheet.setFrozenRows(1);
+        sheet.setColumnWidths(1, headers.length, 150);
+    }
+    return sheet;
+}
+
+// Buscar fila por ID de Firebase en la última columna
+function findRowByFirebaseId(sheet, totalCols, firebaseId) {
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return -1;
+    var ids = sheet.getRange(2, totalCols, lastRow - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+        if (ids[i][0] == firebaseId) return i + 2;
+    }
+    return -1;
+}
+
+// Colorear fila según nivel de riesgo
+function colorearFilaRiesgo(sheet, rowIndex, nivelRiesgo) {
+    var nivel = (nivelRiesgo || '').toLowerCase();
+    var color = '#ffffff';
+    if (nivel.includes('muy alto')) color = '#fce4e4';
+    else if (nivel.includes('alto')) color = '#fef3e2';
+    else if (nivel.includes('medio') || nivel.includes('intermedio')) color = '#fffde7';
+    else if (nivel.includes('bajo')) color = '#e8f5e9';
+    if (color !== '#ffffff') {
+        sheet.getRange(rowIndex, 1, 1, sheet.getLastColumn()).setBackground(color);
+    }
 }
 
 function saveToDrive(base64Data, mimeType, fileName) {

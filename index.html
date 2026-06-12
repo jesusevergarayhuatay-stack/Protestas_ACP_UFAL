@@ -115,10 +115,32 @@
                         <!-- 1. Información General -->
                         <div class="form-section-card">
                             <h4 class="form-section-title">1. Información General</h4>
-                            <input type="text" id="alerta-nombre-evento" class="form-input" placeholder="Nombre del Evento*" required>
-                            <select id="alerta-clasificacion" class="form-input" required>
-                                <option value="">Clasificación de la Alerta*</option>
-                            </select>
+                            <div class="field-group">
+                                <label class="field-label">Nombre del evento *</label>
+                                <input type="text" id="alerta-nombre-evento" class="form-input" placeholder="Ej: Paro regional en Cusco" required>
+                            </div>
+                            <div class="form-row-2">
+                                <div class="field-group">
+                                    <label class="field-label">Fecha del evento *</label>
+                                    <input type="date" id="alerta-fecha-evento" class="form-input" required>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label">Clasificación *</label>
+                                    <select id="alerta-clasificacion" class="form-input" required>
+                                        <option value="" disabled selected>Seleccionar...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Fuente de información</label>
+                                <select id="alerta-fuente-info" class="form-input">
+                                    <option value="" disabled selected>Seleccionar fuente...</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Enlace / URL de la fuente</label>
+                                <input type="url" id="alerta-link-fuente" class="form-input" placeholder="https://...">
+                            </div>
                         </div>
 
                         <!-- 2. Vincular Conflicto -->
@@ -138,22 +160,26 @@
                         <!-- 3. Descripción y Contexto -->
                         <div class="form-section-card">
                             <h4 class="form-section-title">3. Descripción y Contexto</h4>
-                            <textarea id="alerta-descripcion" class="form-input form-textarea" placeholder="Descripción de los hechos*" rows="4" required></textarea>
-                            <textarea id="alerta-demandas" class="form-input form-textarea" placeholder="Demandas principales de los actores" rows="3"></textarea>
+                            <div class="field-group">
+                                <label class="field-label">Descripción de los hechos *</label>
+                                <textarea id="alerta-descripcion" class="form-input form-textarea" placeholder="Describa brevemente lo ocurrido..." rows="4" required></textarea>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Demandas principales de los actores</label>
+                                <textarea id="alerta-demandas" class="form-input form-textarea" placeholder="¿Qué exigen los actores involucrados?" rows="3"></textarea>
+                            </div>
                         </div>
 
                         <!-- 4. Detalles de la Alerta -->
                         <div class="form-section-card">
                             <h4 class="form-section-title">4. Detalles de la Alerta</h4>
-                            <div class="form-row-2">
-                                <div class="form-field-float">
-                                    <input type="number" id="alerta-cantidad-personas" class="form-input" value="0" min="0">
-                                    <label class="float-label">Cantidad de personas involucradas</label>
-                                </div>
+                            <div class="field-group">
+                                <label class="field-label">Tipo de medida de protesta</label>
+                                <select id="alerta-tipo-medida" class="form-input"><option value="" disabled selected>Seleccionar tipo de medida...</option></select>
                             </div>
-                            <div class="form-row-2">
-                                <select id="alerta-tipo-medida" class="form-input"><option value="">Tipos de Medida</option></select>
-                                <select id="alerta-tipo-demanda" class="form-input"><option value="">Tipos de Demanda</option></select>
+                            <div class="field-group">
+                                <label class="field-label">Tipo de demanda</label>
+                                <select id="alerta-tipo-demanda" class="form-input"><option value="" disabled selected>Seleccionar tipo de demanda...</option></select>
                             </div>
                         </div>
 
@@ -187,27 +213,33 @@
                         <!-- 7. Análisis de Riesgo -->
                         <div class="form-section-card">
                             <h4 class="form-section-title">7. Análisis de Riesgo</h4>
-                            <div class="riesgo-row">
-                                <select id="alerta-riesgo-prob" class="form-input" onchange="calcularNivelRiesgo('alerta')">
-                                    <option value="">Probabilidad (P)*</option>
-                                    <option value="1">1 — Muy baja</option>
-                                    <option value="2">2 — Baja</option>
-                                    <option value="3">3 — Media</option>
-                                    <option value="4">4 — Alta</option>
-                                    <option value="5">5 — Muy alta</option>
-                                </select>
-                                <select id="alerta-riesgo-impacto" class="form-input" onchange="calcularNivelRiesgo('alerta')">
-                                    <option value="">Impacto (I)*</option>
-                                    <option value="1">1 — Muy bajo</option>
-                                    <option value="2">2 — Bajo</option>
-                                    <option value="3">3 — Medio</option>
-                                    <option value="4">4 — Alto</option>
-                                    <option value="5">5 — Muy alto</option>
-                                </select>
-                                <div class="nivel-riesgo-container">
-                                    <span style="font-size:0.8rem; color:#666;">Nivel de Riesgo:</span>
-                                    <span id="alerta-nivel-riesgo" class="nivel-riesgo-badge">-</span>
+                            <div class="form-row-2">
+                                <div class="field-group">
+                                    <label class="field-label">Probabilidad (P)</label>
+                                    <select id="alerta-riesgo-prob" class="form-input" onchange="calcularNivelRiesgo('alerta')">
+                                        <option value="" disabled selected>Seleccionar...</option>
+                                        <option value="1">1 — Muy baja</option>
+                                        <option value="2">2 — Baja</option>
+                                        <option value="3">3 — Media</option>
+                                        <option value="4">4 — Alta</option>
+                                        <option value="5">5 — Muy alta</option>
+                                    </select>
                                 </div>
+                                <div class="field-group">
+                                    <label class="field-label">Impacto (I)</label>
+                                    <select id="alerta-riesgo-impacto" class="form-input" onchange="calcularNivelRiesgo('alerta')">
+                                        <option value="" disabled selected>Seleccionar...</option>
+                                        <option value="1">1 — Muy bajo</option>
+                                        <option value="2">2 — Bajo</option>
+                                        <option value="3">3 — Medio</option>
+                                        <option value="4">4 — Alto</option>
+                                        <option value="5">5 — Muy alto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="nivel-riesgo-container" style="margin-top:4px;">
+                                <span style="font-size:0.75rem; color:#888; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Nivel de Riesgo:</span>
+                                <span id="alerta-nivel-riesgo" class="nivel-riesgo-badge">—</span>
                             </div>
                         </div>
 
@@ -266,14 +298,26 @@
                         <!-- 1. Información General -->
                         <div class="form-section-card">
                             <h4 class="form-section-title">1. Información General</h4>
-                            <input type="text" id="acp-nombre-evento" class="form-input" placeholder="Nombre del Evento*" required>
-                            <div class="form-row-2">
-                                <input type="date" id="acp-fecha-evento" class="form-input" required>
-                                <select id="acp-fuente-info" class="form-input" required>
-                                    <option value="">Fuente de Información*</option>
-                                </select>
+                            <div class="field-group">
+                                <label class="field-label">Nombre del evento *</label>
+                                <input type="text" id="acp-nombre-evento" class="form-input" placeholder="Ej: Marcha contra proyecto minero" required>
                             </div>
-                            <input type="text" id="acp-link-fuente" class="form-input" placeholder="Link o Detalle de la Fuente">
+                            <div class="form-row-2">
+                                <div class="field-group">
+                                    <label class="field-label">Fecha del evento *</label>
+                                    <input type="date" id="acp-fecha-evento" class="form-input" required>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label">Fuente de información</label>
+                                    <select id="acp-fuente-info" class="form-input">
+                                        <option value="" disabled selected>Seleccionar fuente...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Enlace / URL de la fuente</label>
+                                <input type="url" id="acp-link-fuente" class="form-input" placeholder="https://...">
+                            </div>
                         </div>
 
                         <!-- 2. Vincular Conflicto -->
@@ -293,33 +337,46 @@
                         <!-- 3. Descripción y Contexto -->
                         <div class="form-section-card">
                             <h4 class="form-section-title">3. Descripción y Contexto</h4>
-                            <textarea id="acp-descripcion" class="form-input form-textarea" placeholder="Descripción de los hechos*" rows="4" required></textarea>
-                            <textarea id="acp-demandas" class="form-input form-textarea" placeholder="Demandas principales de los actores" rows="3"></textarea>
+                            <div class="field-group">
+                                <label class="field-label">Descripción de los hechos *</label>
+                                <textarea id="acp-descripcion" class="form-input form-textarea" placeholder="Describa brevemente lo ocurrido..." rows="4" required></textarea>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">Demandas principales de los actores</label>
+                                <textarea id="acp-demandas" class="form-input form-textarea" placeholder="¿Qué exigen los actores involucrados?" rows="3"></textarea>
+                            </div>
                         </div>
 
                         <!-- 4. Detalles de la Protesta -->
                         <div class="form-section-card">
                             <h4 class="form-section-title">4. Detalles de la Protesta</h4>
                             <div class="form-row-2">
-                                <div class="form-field-float">
-                                    <input type="number" id="acp-cantidad-personas" class="form-input" value="0" min="0">
-                                    <label class="float-label">Cantidad de personas involucradas</label>
+                                <div class="field-group">
+                                    <label class="field-label">N.º de personas involucradas</label>
+                                    <input type="number" id="acp-cantidad-personas" class="form-input" value="0" min="0" placeholder="0">
                                 </div>
-                                <div class="form-field-float">
-                                    <input type="number" id="acp-cantidad-terceros" class="form-input" value="0" min="0">
-                                    <label class="float-label">Cantidad aprox. de terceros afectados</label>
+                                <div class="field-group">
+                                    <label class="field-label">N.º aprox. de terceros afectados</label>
+                                    <input type="number" id="acp-cantidad-terceros" class="form-input" value="0" min="0" placeholder="0">
                                 </div>
                             </div>
-                            <div class="form-row-2">
-                                <select id="acp-tipo-medida" class="form-input"><option value="">Tipos de Medida</option></select>
-                                <select id="acp-tipo-demanda" class="form-input"><option value="">Tipos de Demanda</option></select>
+                            <div class="field-group">
+                                <label class="field-label">Tipo de medida de protesta</label>
+                                <select id="acp-tipo-medida" class="form-input"><option value="" disabled selected>Seleccionar tipo de medida...</option></select>
                             </div>
-                            <select id="acp-hubo-violencia" class="form-input" required>
-                                <option value="" disabled selected>Hubo violencia*</option>
-                                <option value="Sí">Sí</option>
-                                <option value="No">No</option>
-                                <option value="No identificado">No identificado</option>
-                            </select>
+                            <div class="field-group">
+                                <label class="field-label">Tipo de demanda</label>
+                                <select id="acp-tipo-demanda" class="form-input"><option value="" disabled selected>Seleccionar tipo de demanda...</option></select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label">¿Hubo violencia? *</label>
+                                <select id="acp-hubo-violencia" class="form-input" required>
+                                    <option value="" disabled selected>Seleccionar...</option>
+                                    <option value="Sí">Sí</option>
+                                    <option value="No">No</option>
+                                    <option value="No identificado">No identificado</option>
+                                </select>
+                            </div>
                         </div>
 
                     </div>

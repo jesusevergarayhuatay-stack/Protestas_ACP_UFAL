@@ -23,29 +23,46 @@ const CLASIFICACIONES_ALERTA = [
 ];
 
 const TIPOS_MEDIDA = [
-    "Huelga",
-    "Paro",
-    "Marcha / Movilización",
-    "Bloqueo de vías",
-    "Toma de local",
-    "Plantón",
-    "Mitin",
-    "Huelga de hambre",
-    "Paros escalonados",
-    "Otro"
+    "Movilización",
+    "Bloqueo de vías (carreteras o vías de acceso)",
+    "Paros (24 horas, 48 horas, 72 horas, indefinido)",
+    "Plantones (concentraciones o mítines)",
+    "Huelgas (huelga indefinida)",
+    "Toma de entidades, locales, campamentos",
+    "Marcha",
+    "Destrucción o daño de la propiedad pública y/o privada",
+    "Enfrentamientos entre sectores de la sociedad y la PNP / sectores de la sociedad",
+    "Otros"
 ];
 
 const TIPOS_DEMANDA = [
-    "Laborales / Sindicales",
-    "Económicas",
-    "Políticas",
-    "Ambientales",
-    "Sociales",
-    "Territoriales",
-    "Servicios básicos",
-    "Seguridad ciudadana",
-    "Derechos humanos",
-    "Otro"
+    "Problemas ambientales",
+    "Rechazo a la actividad extractiva",
+    "Problemas de relacionamiento comunitario o incumplimiento de compromisos",
+    "Acceso al agua",
+    "Demanda de consulta previa",
+    "Cumplimiento en la ejecución de proyectos de inversión",
+    "Cuestionamiento a la gestión municipal (falta de transparencia y de espacios de participación, rendición de cuentas)",
+    "Incremento y/o nivelación de remuneraciones",
+    "Demandas laborales (mejoras de condiciones, pago de horas extras, bonificaciones, pago de incentivos, etc.)",
+    "Demandas al gobierno nacional",
+    "Imprecisiones en el límite",
+    "Mejora de calidad educativa",
+    "Cuestionamiento a la gestión de autoridades universitarias",
+    "Cuestionamiento a la gestión educativa",
+    "Demandas de compensación",
+    "Respeto de derechos",
+    "Adecuada prestación de servicios",
+    "Rechazo a las actividades minero informales",
+    "Rechazo a normas / políticas",
+    "Demandas al gobierno local",
+    "Rechazo a la designación de Director/a / jefe",
+    "Cuestionamiento al proceso de elección",
+    "Pago de remuneraciones",
+    "Rechazo a proyectos de inversión",
+    "Demandas al Gobierno Regional",
+    "Cuestionamiento a las decisiones de las instancias superiores",
+    "Otros"
 ];
 
 const FUENTES_INFO = [
@@ -96,14 +113,17 @@ function initAlertasModule() {
 
 function populateAlertasSelects() {
     const selClasif = document.getElementById('alerta-clasificacion');
+    const selFuente = document.getElementById('alerta-fuente-info');
     const selMedida = document.getElementById('alerta-tipo-medida');
     const selDemanda = document.getElementById('alerta-tipo-demanda');
 
-    if (selClasif) selClasif.innerHTML = '<option value="">Selecciona clasificación...</option>' +
+    if (selClasif) selClasif.innerHTML = '<option value="" disabled selected>Seleccionar clasificación...</option>' +
         CLASIFICACIONES_ALERTA.map(c => `<option value="${c}">${c}</option>`).join('');
-    if (selMedida) selMedida.innerHTML = '<option value="">Selecciona...</option>' +
+    if (selFuente) selFuente.innerHTML = '<option value="" disabled selected>Seleccionar fuente...</option>' +
+        FUENTES_INFO.map(f => `<option value="${f}">${f}</option>`).join('');
+    if (selMedida) selMedida.innerHTML = '<option value="" disabled selected>Seleccionar tipo de medida...</option>' +
         TIPOS_MEDIDA.map(t => `<option value="${t}">${t}</option>`).join('');
-    if (selDemanda) selDemanda.innerHTML = '<option value="">Selecciona...</option>' +
+    if (selDemanda) selDemanda.innerHTML = '<option value="" disabled selected>Seleccionar tipo de demanda...</option>' +
         TIPOS_DEMANDA.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
@@ -229,9 +249,11 @@ async function saveAlerta() {
     const data = {
         nombreEvento,
         clasificacion,
+        fechaEvento: document.getElementById('alerta-fecha-evento')?.value || new Date().toISOString().split('T')[0],
+        fuenteInfo: document.getElementById('alerta-fuente-info')?.value || '',
+        linkFuente: document.getElementById('alerta-link-fuente')?.value || '',
         descripcion: document.getElementById('alerta-descripcion')?.value || '',
         demandas: document.getElementById('alerta-demandas')?.value || '',
-        cantidadPersonas: parseInt(document.getElementById('alerta-cantidad-personas')?.value) || 0,
         tipoMedida: document.getElementById('alerta-tipo-medida')?.value || '',
         tipoDemanda: document.getElementById('alerta-tipo-demanda')?.value || '',
         conflictoVinculado: window._alertaConflictoVinculado || null,
@@ -251,6 +273,8 @@ async function saveAlerta() {
         const ref = alertasCurrentId ? fbRef('alertas/' + alertasCurrentId) : fbRef('alertas').push();
         if (ref) {
             alertasCurrentId ? await ref.set(data) : await ref.set(data);
+            // Sincronizar con Google Sheets (fire-and-forget)
+            syncAlertaToSheets({ ...data, firebaseId: alertasCurrentId || ref.key });
             closeAlertaForm();
         }
     } catch (e) {
@@ -263,6 +287,15 @@ async function saveAlerta() {
         btn.disabled = false;
         btn.textContent = 'Guardar';
     }
+}
+
+function syncAlertaToSheets(data) {
+    if (typeof GOOGLE_SHEETS_URL === 'undefined' || !GOOGLE_SHEETS_URL) return;
+    fetch(GOOGLE_SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ action: 'alerta', ...data })
+    }).catch(e => console.warn('[Sheets sync alerta]', e));
 }
 
 async function uploadAlertaDocumentos() {
@@ -301,10 +334,12 @@ function deleteAlerta(id) {
 
 function fillAlertaForm(data) {
     document.getElementById('alerta-nombre-evento').value = data.nombreEvento || '';
+    document.getElementById('alerta-fecha-evento').value = data.fechaEvento || '';
     document.getElementById('alerta-clasificacion').value = data.clasificacion || '';
+    document.getElementById('alerta-fuente-info').value = data.fuenteInfo || '';
+    document.getElementById('alerta-link-fuente').value = data.linkFuente || '';
     document.getElementById('alerta-descripcion').value = data.descripcion || '';
     document.getElementById('alerta-demandas').value = data.demandas || '';
-    document.getElementById('alerta-cantidad-personas').value = data.cantidadPersonas || 0;
     document.getElementById('alerta-tipo-medida').value = data.tipoMedida || '';
     document.getElementById('alerta-tipo-demanda').value = data.tipoDemanda || '';
     document.getElementById('alerta-riesgo-prob').value = data.riesgoProbabilidad || '';
