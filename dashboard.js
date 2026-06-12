@@ -691,15 +691,13 @@ async function generarReportePDF(observaciones = '', coordinador = '') {
         doc.rect(0, 0, W, HDR, 'F');
 
         // Logo DP (izquierda)
-        const dpW = 22, dpH = 20;
+        const dpW = 34, dpH = 30;
         if (logos.logoDP) doc.addImage(logos.logoDP.data, logos.logoDP.fmt, MARGIN, (HDR - dpH) / 2, dpW, dpH);
 
-        // Logo 30 años (derecha, fondo blanco)
-        const l30W = 20, l30H = 18;
+        // Logo 30 años (derecha, sin fondo — negro eliminado vía canvas)
+        const l30W = 24, l30H = 22;
         const l30X = W - MARGIN - l30W;
         const l30Y = (HDR - l30H) / 2;
-        doc.setFillColor(...BLANCO);
-        doc.roundedRect(l30X - 1, l30Y - 1, l30W + 2, l30H + 2, 2, 2, 'F');
         if (logos.logo30) doc.addImage(logos.logo30.data, logos.logo30.fmt, l30X, l30Y, l30W, l30H);
 
         // Textos centrados
@@ -1023,10 +1021,42 @@ async function cargarLogos() {
         xhr.send();
     });
 
-    const [logoDP, logo30] = await Promise.all([
+    let [logoDP, logo30raw] = await Promise.all([
         toEntry('./logodpblanco.png'),
         toEntry('./30blanco.jpeg')
     ]);
+
+    // Eliminar fondo negro del logo 30 usando canvas
+    let logo30 = null;
+    if (logo30raw) {
+        try {
+            const pngData = await new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const d = id.data;
+                    for (let i = 0; i < d.length; i += 4) {
+                        // Si el píxel es negro o casi negro → transparente
+                        if (d[i] < 80 && d[i+1] < 80 && d[i+2] < 80) d[i+3] = 0;
+                    }
+                    ctx.putImageData(id, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => resolve(null);
+                img.src = logo30raw.data;
+            });
+            if (pngData) logo30 = { data: pngData, fmt: 'PNG' };
+        } catch (e) {
+            console.warn('[Logo30] Canvas processing falló, usando original', e);
+            logo30 = logo30raw;
+        }
+    }
+
     console.log('[Logos cargados]', { logoDP: !!logoDP, logo30: !!logo30 });
     _cachedLogos = { logoDP, logo30 };
     return _cachedLogos;
@@ -1304,18 +1334,15 @@ async function generarReporteAlertasACP() {
             doc.rect(0, 0, W, HDR_H, 'F');
 
             // ── LOGO DP (izquierda) ───────────────────
-            const logoW = 22, logoH = 20;
+            const logoW = 30, logoH = 26;
             if (logos.logoDP) {
                 doc.addImage(logos.logoDP.data, logos.logoDP.fmt, MARGIN, (HDR_H - logoH) / 2, logoW, logoH);
             }
 
-            // ── LOGO 30 AÑOS (derecha, fondo blanco redondeado) ──
-            const l30W = 22, l30H = 20;
+            // ── LOGO 30 AÑOS (derecha, sin fondo — negro eliminado vía canvas) ──
+            const l30W = 24, l30H = 22;
             const l30X = W - MARGIN - l30W;
             const l30Y = (HDR_H - l30H) / 2;
-            // Fondo blanco detrás del logo 30
-            doc.setFillColor(...BLANCO);
-            doc.roundedRect(l30X - 1, l30Y - 1, l30W + 2, l30H + 2, 2, 2, 'F');
             if (logos.logo30) {
                 doc.addImage(logos.logo30.data, logos.logo30.fmt, l30X, l30Y, l30W, l30H);
             }
