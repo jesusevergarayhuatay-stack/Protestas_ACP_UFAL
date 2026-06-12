@@ -228,18 +228,14 @@ function initPanicButton() {
             const feedRef = fbRef('shared_feeds/' + slug + '/incidents');
             if (feedRef) await feedRef.push(panicInc);
 
-            // 3. Enviar WhatsApp a TODOS los contactos
-            if (waContacts.length > 0) {
+            // 3. Enviar WhatsApp al contacto de emergencia principal (5to registro)
+            const contactoEmergencia = waContacts[4] || waContacts[0];
+            if (contactoEmergencia) {
                 const gps = `${activeSession.currentLat?.toFixed(5)}, ${activeSession.currentLng?.toFixed(5)}`;
                 const mapsLink = `https://maps.google.com/?q=${activeSession.currentLat},${activeSession.currentLng}`;
                 const msg = `🆘 *PÁNICO — EMERGENCIA*\n*Comisionado:* ${activeSession.name}\n*Oficina:* ${activeSession.office}\n*Punto:* ${activeSession.location}\n*GPS:* ${gps}\n*Mapa:* ${mapsLink}`;
-
-                // Abrir WhatsApp para el primer contacto; los demás en tabs
-                waContacts.forEach((c, i) => {
-                    const url = `https://wa.me/${c.numero.toString().replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
-                    if (i === 0) window.open(url, '_blank');
-                    else setTimeout(() => window.open(url, '_blank'), i * 800);
-                });
+                const url = `https://wa.me/${contactoEmergencia.numero.toString().replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+                window.open(url, '_blank');
             } else {
                 alert('⚠️ No hay contactos de emergencia configurados. El administrador fue notificado en el tablero.');
             }
@@ -1061,37 +1057,20 @@ async function syncWithCloud(action, session, extra = {}) {
 function renderHistory() {
     const list = document.getElementById('history-list');
     if (!list) return;
-    list.innerHTML = history.map(h => '<div style="padding:10px; border-bottom:1px solid #eee;"><strong>' + h.location + '</strong> - ' + new Date(h.startTime).toLocaleDateString() + '</div>').join('') || '<p style="color:#999;font-size:0.9rem;">Sin registros previos.</p>';
+    list.innerHTML = history.map(h =>
+        '<div style="padding:10px; border-bottom:1px solid #eee;"><strong>' + (h.location || h.protestName || '—') + '</strong> — ' + new Date(h.startTime).toLocaleDateString('es-PE') + ' · ' + Math.round(((h.endTime || Date.now()) - h.startTime) / 60000) + ' min</div>'
+    ).join('') || '<p style="color:#999;font-size:0.9rem; padding:10px;">Sin registros previos.</p>';
 }
 
-function exportData() {
-    if (!history.length) return alert("Nada que exportar.");
-    const csv = "Fecha,Lugar,Comisionado,Oficina\n" + history.map(h => new Date(h.startTime).toLocaleDateString() + "," + h.location + "," + h.name + "," + h.office).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'reporte.csv'; a.click();
-}
+// Exponer funciones que se usan desde HTML (onclick)
+window.showMainMenu   = showMainMenu;
+window.openModule     = openModule;
+window.goToAlertas    = goToAlertas;
+window.goToAcciones   = goToAcciones;
+window.showAcpForm    = showAcpForm;
+window.showPlanForm   = showPlanForm;
+window.showSection    = showSection;
+window.openWaModal    = openWaModal;
 
-// Exponer funciones de navegación para onclick en HTML
-window.openModule = openModule;
-window.goToAlertas = goToAlertas;
-window.goToAcciones = goToAcciones;
-window.showMainMenu = showMainMenu;
-window.adminLogin = adminLogin;
-window.showAcpForm = showAcpForm;
-window.showPlanForm = showPlanForm;
-
-// Toggle sección "vincular conflicto" — disponible desde el inicio
-window.toggleConflictoAlerta = function(mostrar) {
-    const div = document.getElementById('alerta-conflicto-buscar');
-    if (div) div.style.display = mostrar ? 'block' : 'none';
-    if (!mostrar) window._alertaConflictoVinculado = null;
-};
-window.toggleConflictoAcp = function(mostrar) {
-    const div = document.getElementById('acp-conflicto-buscar');
-    if (div) div.style.display = mostrar ? 'block' : 'none';
-    if (!mostrar) window._acpConflictoVinculado = null;
-};
-
-init();
+// Arranque
+document.addEventListener('DOMContentLoaded', init);
