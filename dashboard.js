@@ -686,21 +686,33 @@ async function generarReportePDF(observaciones = '', coordinador = '') {
         const logos = await cargarLogos();
 
         // ========== ENCABEZADO ==========
+        const HDR = 40;
         doc.setFillColor(...AZUL_DP);
-        doc.rect(0, 0, W, 38, 'F');
+        doc.rect(0, 0, W, HDR, 'F');
 
-        // Logos en la esquina superior derecha
-        if (logos.logoDP)  doc.addImage(logos.logoDP.data,  logos.logoDP.fmt,  W - MARGIN - 46, 4, 24, 22);
-        if (logos.logo30)  doc.addImage(logos.logo30.data,  logos.logo30.fmt,  W - MARGIN - 20, 6, 18, 18);
+        // Logo DP (izquierda)
+        const dpW = 22, dpH = 20;
+        if (logos.logoDP) doc.addImage(logos.logoDP.data, logos.logoDP.fmt, MARGIN, (HDR - dpH) / 2, dpW, dpH);
 
-        // Título (izquierda)
+        // Logo 30 años (derecha, fondo blanco)
+        const l30W = 20, l30H = 18;
+        const l30X = W - MARGIN - l30W;
+        const l30Y = (HDR - l30H) / 2;
+        doc.setFillColor(...BLANCO);
+        doc.roundedRect(l30X - 1, l30Y - 1, l30W + 2, l30H + 2, 2, 2, 'F');
+        if (logos.logo30) doc.addImage(logos.logo30.data, logos.logo30.fmt, l30X, l30Y, l30W, l30H);
+
+        // Textos centrados
         doc.setTextColor(...BLANCO);
+        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Adjunto para la Prevención de Conflictos Sociales y la Gobernabilidad', W / 2, 10, { align: 'center' });
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
-        doc.text('Defensoría del Pueblo — Reporte Diario de Supervisión', MARGIN, 13);
-        doc.setFontSize(8);
+        doc.text('Reporte Diario de Supervisión de Campo', W / 2, 19, { align: 'center' });
+        doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
-        doc.text('Adjuntía para la Prevención de Conflictos Sociales y la Gobernabilidad', MARGIN, 20);
+        doc.text('Defensoría del Pueblo del Perú', W / 2, 26, { align: 'center' });
 
         // Fecha y turno (bajo el título, izquierda)
         const fechaFiltro = document.getElementById('filter-date')?.value || new Date().toISOString().split('T')[0];
@@ -709,15 +721,16 @@ async function generarReportePDF(observaciones = '', coordinador = '') {
         const protestFiltro = document.getElementById('filter-protest')?.value;
         const turnoLabel = protestFiltro && protestFiltro !== 'all' ? protestFiltro : 'Todas las movilizaciones';
 
-        doc.setFontSize(7.5);
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'bold');
-        doc.text(`${fechaLegible}  ·  ${turnoLabel}`, MARGIN, 27);
+        doc.setTextColor(...BLANCO);
+        doc.text(`${fechaLegible}  ·  ${turnoLabel}`, W / 2, 33, { align: 'center' });
         const horaGen = new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
         doc.setFontSize(6.5);
         doc.setTextColor(200, 215, 235);
-        doc.text(`Generado: ${horaGen}`, W - MARGIN, 27, { align: 'right' });
+        doc.text(`Generado: ${horaGen}`, W - MARGIN, 37, { align: 'right' });
 
-        y = 46;
+        y = 48;
 
         // ========== DATOS DE SESIONES ==========
         const sessions = Object.values(allSessionsOfDate);
@@ -945,7 +958,7 @@ async function generarReportePDF(observaciones = '', coordinador = '') {
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...GRIS_TXT);
-        doc.text('Jefe de la Adjuntía', x2 + signW / 2, y + 22, { align: 'center' });
+        doc.text('Adjunto para la Prevención de Conflictos Sociales y la Gobernabilidad', x2 + signW / 2, y + 22, { align: 'center' });
 
         // ========== PIE DE PÁGINA en todas las páginas ==========
         const totalPages = doc.internal.getNumberOfPages();
@@ -1245,6 +1258,23 @@ async function generarReporteAlertasACP() {
         const numMes     = String(ahora.getMonth() + 1).padStart(2, '0');
         const fechaCorta = `${ahora.getFullYear()}-${numMes}-${numDia}`;
 
+        // ── RANGO DE FECHAS DEL FILTRO ────────────
+        const filtroDesde = document.getElementById('filtro-fecha-desde')?.value;
+        const filtroHasta = document.getElementById('filtro-fecha-hasta')?.value;
+        const formatFechaCorta = f => {
+            if (!f) return null;
+            const [y, m, d] = f.split('-');
+            return `${d}/${m}/${y}`;
+        };
+        let periodoTitulo = fechaLarga;
+        if (filtroDesde && filtroHasta) {
+            periodoTitulo = `Del ${formatFechaCorta(filtroDesde)} al ${formatFechaCorta(filtroHasta)}`;
+        } else if (filtroDesde) {
+            periodoTitulo = `Desde el ${formatFechaCorta(filtroDesde)}`;
+        } else if (filtroHasta) {
+            periodoTitulo = `Hasta el ${formatFechaCorta(filtroHasta)}`;
+        }
+
         // ── REGISTROS ─────────────────────────────
         const alertas = _allRegistros
             .filter(r => r._tipo === 'alerta')
@@ -1267,42 +1297,60 @@ async function generarReporteAlertasACP() {
         // ENCABEZADO DE PÁGINA
         // ─────────────────────────────────────────
         function drawHeader(subtitulo) {
-            // Banda azul superior
+            const HDR_H = 36;
+
+            // Banda azul superior completa
             doc.setFillColor(...AZUL_DP);
-            doc.rect(0, 0, W, 32, 'F');
+            doc.rect(0, 0, W, HDR_H, 'F');
 
-            // Logos (izquierda)
-            if (logos.logoDP) doc.addImage(logos.logoDP.data, logos.logoDP.fmt, MARGIN, 3, 20, 18);
-            if (logos.logo30) doc.addImage(logos.logo30.data, logos.logo30.fmt, MARGIN + 22, 5, 15, 14);
+            // ── LOGO DP (izquierda) ───────────────────
+            const logoW = 22, logoH = 20;
+            if (logos.logoDP) {
+                doc.addImage(logos.logoDP.data, logos.logoDP.fmt, MARGIN, (HDR_H - logoH) / 2, logoW, logoH);
+            }
 
-            // Institución (centro-izquierda)
+            // ── LOGO 30 AÑOS (derecha, fondo blanco redondeado) ──
+            const l30W = 22, l30H = 20;
+            const l30X = W - MARGIN - l30W;
+            const l30Y = (HDR_H - l30H) / 2;
+            // Fondo blanco detrás del logo 30
+            doc.setFillColor(...BLANCO);
+            doc.roundedRect(l30X - 1, l30Y - 1, l30W + 2, l30H + 2, 2, 2, 'F');
+            if (logos.logo30) {
+                doc.addImage(logos.logo30.data, logos.logo30.fmt, l30X, l30Y, l30W, l30H);
+            }
+
+            // ── TEXTO CENTRO ──────────────────────────
+            const textX = MARGIN + logoW + 6;
+            const textMaxW = l30X - textX - 4;
+
             doc.setTextColor(...BLANCO);
-            doc.setFontSize(7.5);
+            doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
             doc.text('Adjuntía para la Prevención de Conflictos Sociales y la Gobernabilidad',
-                MARGIN + 40, 11);
+                W / 2, 9, { align: 'center' });
 
-            // Título del reporte (centro)
-            doc.setFontSize(11);
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('REPORTE DE ALERTAS DEFENSORIALES', W / 2, 19, { align: 'center' });
+            doc.text('REPORTE DE ALERTAS DEFENSORIALES', W / 2, 18, { align: 'center' });
+
             doc.setFontSize(7.5);
             doc.setFont('helvetica', 'normal');
-            doc.text('UNIDAD FUNCIONAL DE PREVENCIÓN Y ALERTAS', W / 2, 25, { align: 'center' });
+            doc.text('Unidad Funcional de Prevención y Alertas', W / 2, 24, { align: 'center' });
 
-            // Fecha (derecha)
+            // Periodo / fecha
             doc.setFontSize(7.5);
             doc.setFont('helvetica', 'bold');
-            doc.text(fechaLarga, W - MARGIN, 14, { align: 'right' });
+            doc.text(periodoTitulo, W / 2, 31, { align: 'center' });
 
             // Subtítulo de sección (banda gris bajo el header)
             if (subtitulo) {
                 doc.setFillColor(240, 244, 250);
-                doc.rect(0, 32, W, 8, 'F');
+                doc.rect(0, HDR_H, W, 8, 'F');
                 doc.setTextColor(...AZUL_DP);
                 doc.setFontSize(8.5);
                 doc.setFont('helvetica', 'bold');
-                doc.text(subtitulo, MARGIN, 37.5);
+                doc.text(subtitulo, MARGIN, HDR_H + 5.5);
             }
         }
 
@@ -1327,7 +1375,7 @@ async function generarReporteAlertasACP() {
         // ─────────────────────────────────────────
         const subAlertas = `1.   Registro de alertas defensoriales`;
         drawHeader(subAlertas);
-        let y = 46;
+        let y = 50;
 
         if (alertas.length > 0) {
             const rows = alertas.map((r, i) => {
@@ -1423,7 +1471,7 @@ async function generarReporteAlertasACP() {
             doc.addPage();
             const subACP = `2.   Registro de Acciones Colectivas de Protesta (ACP)`;
             drawHeader(subACP);
-            y = 46;
+            y = 50;
 
             const acpRows = acps.map((r, i) => {
                 const codigo  = `ACP ${String(i + 1).padStart(3,'0')}-${year}`;
