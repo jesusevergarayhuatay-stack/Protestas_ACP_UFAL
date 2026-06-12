@@ -20,6 +20,17 @@ const puntosPredefinidos = {
     "Videovigilancia": ["Centro de Monitoreo", "Cámaras - Municipalidad", "Cámaras - PNP"]
 };
 
+// Cascada directa Lima: categoría → puntos
+function cascadePuntosLima(cat) {
+    const pointSelect = document.getElementById('punto-lima');
+    if (!pointSelect || !cat) return;
+    let html = '<option value="">Selecciona punto...</option>';
+    (puntosPredefinidos[cat] || []).forEach(p => { html += `<option value="${p}">${p}</option>`; });
+    pointSelect.innerHTML = html;
+    cargarPuntosFirebase(cat, pointSelect);
+}
+window.cascadePuntosLima = cascadePuntosLima;
+
 // Firebase Safety (fbRef y _fbDb definidos en firebase-config.js)
 const _fbStorage = (typeof _storage !== "undefined") ? _storage : null;
 
