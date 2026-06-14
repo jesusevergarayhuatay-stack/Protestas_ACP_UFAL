@@ -44,7 +44,7 @@
                         <div class="fs-1 me-3">🚨</div>
                         <div>
                             <h3 class="h6 fw-bold mb-1" style="color: #003366;">1. Registro de Alertas</h3>
-                            <p class="text-muted small mb-0">Registrar acciones que presentan riesgos</p>
+                            <p class="text-muted small mb-0">Reportes de incidencias críticas, heridos y detenidos.</p>
                         </div>
                     </div>
                 </div>
@@ -55,8 +55,8 @@
                     <div class="d-flex align-items-center">
                         <div class="fs-1 me-3">🤝</div>
                         <div>
-                            <h3 class="h6 fw-bold mb-1" style="color: #003366;">2. Acciones Colectivas de Protesta</h3>
-                            <p class="text-muted small mb-0">Registrar acciones concurrentes</p>
+                            <h3 class="h6 fw-bold mb-1" style="color: #003366;">2. Acciones Colectivas</h3>
+                            <p class="text-muted small mb-0">Registro de mediaciones, mesas de diálogo y marchas.</p>
                         </div>
                     </div>
                 </div>
@@ -355,7 +355,7 @@
 
                         <!-- 9. Documentos de Evidencia -->
                         <div class="form-section-card">
-                            <h4 class="form-section-title">9. Documentos de Evidencia <span style="font-weight:400; font-size:0.85em;">(De corresponder)</span></h4>
+                            <h4 class="form-section-title">9. Documentos de Evidencia <small style="font-weight:400;color:#888;">(De corresponder)</small></h4>
                             <div id="alerta-dropzone" class="dropzone">
                                 <span class="dropzone-icon">☁️</span>
                                 <p>Arrastra y suelta archivos, o <strong>haz clic para seleccionar</strong>.</p>
@@ -426,14 +426,12 @@
                                     </label>
                                 </div>
                             </div>
-                            <!-- Fecha única -->
                             <div id="acp-fecha-unica-wrap">
                                 <div class="field-group">
                                     <label class="field-label">Fecha del evento *</label>
                                     <input type="date" id="acp-fecha-evento" class="form-input" required>
                                 </div>
                             </div>
-                            <!-- Rango de fechas -->
                             <div id="acp-fecha-rango-wrap" style="display:none;">
                                 <div class="form-row-2">
                                     <div class="field-group">
@@ -446,7 +444,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="field-group">
+                            <div class="field-group" style="margin-top:8px;">
                                 <label class="field-label">Fuente de información</label>
                                 <select id="acp-fuente-info" class="form-input">
                                     <option value="" disabled selected>Seleccionar fuente...</option>
@@ -698,7 +696,7 @@
 
                         <!-- 12. Documentos de Evidencia -->
                         <div class="form-section-card">
-                            <h4 class="form-section-title">12. Documentos de Evidencia <span style="font-weight:400; font-size:0.85em;">(De corresponder)</span></h4>
+                            <h4 class="form-section-title">12. Documentos de Evidencia <small style="font-weight:400;color:#888;">(De corresponder)</small></h4>
                             <div id="acp-dropzone" class="dropzone">
                                 <span class="dropzone-icon">☁️</span>
                                 <p>Arrastra y suelta archivos, o <strong>haz clic para seleccionar</strong>.</p>
@@ -1028,6 +1026,7 @@
                         <option value="Heridos">🟠 Heridos</option>
                         <option value="Fallecidos">🔴 Fallecidos</option>
                         <option value="Privados de la libertad">🟣 Privados de la libertad</option>
+                        <option value="Otro">📌 Otro</option>
                     </select>
                 </div>
 
@@ -1095,42 +1094,10 @@
 
     <!-- MODAL LINEAMIENTOS -->
     <div id="docs-modal" class="modal hidden-modal">
-        <div class="modal-content" style="max-width:480px; width:95%;">
-            <h3 style="margin-bottom:16px;">📂 Documentos de Gestión</h3>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-
-                <!-- Documento 1 -->
-                <div style="display:flex; align-items:center; gap:12px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px 14px;">
-                    <div style="font-size:2rem; line-height:1;">📕</div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:600; font-size:0.9rem; color:#2c3e50;">Lineamientos de Supervisión ACSO</div>
-                        <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">PDF · Defensoría del Pueblo · 2024</div>
-                    </div>
-                    <a href="#" onclick="return false;" style="background:#2c3e50; color:#fff; border:none; border-radius:6px; padding:5px 12px; font-size:0.78rem; text-decoration:none; white-space:nowrap;">Ver</a>
-                </div>
-
-                <!-- Documento 2 -->
-                <div style="display:flex; align-items:center; gap:12px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px 14px;">
-                    <div style="font-size:2rem; line-height:1;">📘</div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:600; font-size:0.9rem; color:#2c3e50;">Cartilla de Derechos Ciudadanos</div>
-                        <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">PDF · Defensoría del Pueblo · 2024</div>
-                    </div>
-                    <a href="#" onclick="return false;" style="background:#2c3e50; color:#fff; border:none; border-radius:6px; padding:5px 12px; font-size:0.78rem; text-decoration:none; white-space:nowrap;">Ver</a>
-                </div>
-
-                <!-- Documento 3 -->
-                <div style="display:flex; align-items:center; gap:12px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:10px; padding:12px 14px;">
-                    <div style="font-size:2rem; line-height:1;">📗</div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="font-weight:600; font-size:0.9rem; color:#2c3e50;">Protocolo de Intervención en Campo</div>
-                        <div style="font-size:0.75rem; color:#6c757d; margin-top:2px;">PDF · Defensoría del Pueblo · 2024</div>
-                    </div>
-                    <a href="#" onclick="return false;" style="background:#2c3e50; color:#fff; border:none; border-radius:6px; padding:5px 12px; font-size:0.78rem; text-decoration:none; white-space:nowrap;">Ver</a>
-                </div>
-
-            </div>
-            <button type="button" onclick="document.getElementById('docs-modal').classList.add('hidden-modal')" class="btn-primary" style="margin-top:16px; background:#7f8c8d; width:100%;">Cerrar</button>
+        <div class="modal-content">
+            <h3>📄 Lineamientos y Documentos</h3>
+            <div id="modal-docs-list" style="max-height:60vh; overflow-y:auto; margin-top:10px;"></div>
+            <button type="button" onclick="document.getElementById('docs-modal').classList.add('hidden-modal')" class="btn-primary" style="margin-top:12px; background:#7f8c8d;">Cerrar</button>
         </div>
     </div>
 

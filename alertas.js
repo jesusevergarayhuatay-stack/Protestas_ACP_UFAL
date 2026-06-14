@@ -127,7 +127,7 @@ function setupAlertasListeners() {
 
     // Dinámicos: Ubicaciones
     document.getElementById('agregar-ubicacion-alerta-btn')?.addEventListener('click', () => addUbicacionRow('alerta'));
-    // Dinámicos: Actores
+    // Dinámicos: Actores (split por rol)
     document.getElementById('agregar-demandante-alerta-btn')?.addEventListener('click', () => addActorByRole('alerta', 'Demandante'));
     document.getElementById('agregar-demandado-alerta-btn')?.addEventListener('click', () => addActorByRole('alerta', 'Demandado'));
     // Dinámicos: Documentos
@@ -504,6 +504,8 @@ function renderActoresList(formPrefix) {
     renderActoresDemandantesList(formPrefix, _getActorList(formPrefix, 'Demandante'));
     renderActoresDemandadosList(formPrefix, _getActorList(formPrefix, 'Demandado'));
 }
+function updateActor(formPrefix, idx, field, value) { /* legacy – no-op */ }
+function removeActor(formPrefix, idx) { /* legacy – no-op */ }
 
 // --- DOCUMENTOS (Drag & Drop) ---
 function handleFilesAlerta(files) {
@@ -641,6 +643,7 @@ window.removeUbicacion = removeUbicacion;
 window.removeActor = removeActor;
 window.removeActorByRole = removeActorByRole;
 window.updateUbicacion = updateUbicacion;
+window.updateActor = updateActor;
 window.updateActorByRole = updateActorByRole;
 window.onDeptChange = onDeptChange;
 window.onProvChange = onProvChange;

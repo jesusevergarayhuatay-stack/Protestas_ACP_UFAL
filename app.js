@@ -20,7 +20,7 @@ const puntosPredefinidos = {
     "Videovigilancia": ["Centro de Monitoreo", "Cámaras - Municipalidad", "Cámaras - PNP"]
 };
 
-// Cascada directa Lima: categoría → puntos
+// Cascada directa Lima: seleccionar categoría → rellenar puntos de supervisión
 function cascadePuntosLima(cat) {
     const pointSelect = document.getElementById('punto-lima');
     if (!pointSelect || !cat) return;
@@ -894,7 +894,7 @@ saveIncidentBtn?.addEventListener('click', async () => {
         timestamp: Date.now(),
         time: formatAMPM(new Date()),
         tipoRegistro: document.getElementById('modal-title')?.textContent?.includes('Actualización') ? 'Actualización' : 'Incidencia',
-        clasificacion: mode === 'actualizacion' ? 'Actualización' : category,
+        clasificacion: category,
         cantidad: qty,
         description: finalDesc,
         author: activeSession.name,

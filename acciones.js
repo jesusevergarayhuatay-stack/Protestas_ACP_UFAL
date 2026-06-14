@@ -114,7 +114,8 @@ function openAcpForm(editData = null) {
     } else {
         document.getElementById('acp-form-el')?.reset();
         renderUbicacionesList('acp', []);
-        renderActoresList('acp', []);
+        renderActoresDemandantesList('acp', []);
+        renderActoresDemandadosList('acp', []);
         renderDocumentosList('acp', []);
         renderPersonasList('heridas', []);
         renderPersonasList('detenidas', []);
@@ -123,10 +124,10 @@ function openAcpForm(editData = null) {
         unlinkConflicto('acp');
     }
 
-    // Inicializar tipo de fecha y max=hoy
+    // Inicializar tipo de fecha: fecha única seleccionada por defecto, max=hoy
     const radioUnicaInit = document.getElementById('acp-tipo-fecha-unica');
-    if (radioUnicaInit) radioUnicaInit.checked = true;
-    toggleAcpTipoFecha('unica');
+    if (radioUnicaInit && !editData) radioUnicaInit.checked = true;
+    toggleAcpTipoFecha(editData?.tipoFecha || 'unica');
 
     document.getElementById('modulo-acciones')?.scrollTo(0, 0);
 }
@@ -308,8 +309,10 @@ function fillAcpForm(data) {
     if (tipoFecha === 'rango' && radioRango) {
         radioRango.checked = true;
         toggleAcpTipoFecha('rango');
-        document.getElementById('acp-fecha-inicio').value = data.fechaEvento || '';
-        document.getElementById('acp-fecha-fin').value = data.fechaFin || '';
+        const fi = document.getElementById('acp-fecha-inicio');
+        const ff = document.getElementById('acp-fecha-fin');
+        if (fi) fi.value = data.fechaEvento || '';
+        if (ff) ff.value = data.fechaFin || '';
     } else {
         if (radioUnica) radioUnica.checked = true;
         toggleAcpTipoFecha('unica');
@@ -469,6 +472,3 @@ window.removePersona = removePersona;
 window.updatePersona = updatePersona;
 window.openAcpForm = openAcpForm;
 window.initAcpModule = initAcpModule;
-window.addActorByRole = window.addActorByRole || addActorByRole;
-window.removeActorByRole = window.removeActorByRole || removeActorByRole;
-window.updateActorByRole = window.updateActorByRole || updateActorByRole;
