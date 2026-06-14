@@ -1087,14 +1087,15 @@ let _registrosFiltrados = []; // tras aplicar filtros
 function switchAdminTab(tab, btnEl) {
     document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
     btnEl.classList.add('active');
-    if (tab === 'supervision') {
-        document.getElementById('panel-supervision').style.display = 'block';
-        document.getElementById('panel-registros').style.display = 'none';
-    } else {
-        document.getElementById('panel-supervision').style.display = 'none';
-        document.getElementById('panel-registros').style.display = 'block';
-        loadRegistros();
-    }
+
+    const panels = { supervision: 'panel-supervision', registros: 'panel-registros', compensacion: 'panel-compensacion' };
+    Object.entries(panels).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = (key === tab) ? 'block' : 'none';
+    });
+
+    if (tab === 'registros') loadRegistros();
+    if (tab === 'compensacion' && typeof initCompensacionModule === 'function') initCompensacionModule();
 }
 
 function loadRegistros() {
