@@ -536,6 +536,9 @@ function compRenderListaSupervisiones() {
         return;
     }
 
+    const staffActivo = COMP_STAFF.find(s => s.key === _compStaffActivo);
+    const nombreStaff = staffActivo ? staffActivo.nombre : _compStaffActivo;
+
     container.innerHTML = sups.map(s => {
         const expirado = compEstaExpirado(s.fecha);
         const tipoDia = compTipoDia(s.fecha);
@@ -545,6 +548,7 @@ function compRenderListaSupervisiones() {
             <div style="flex:1; min-width:0;">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
                     <strong style="font-size:0.88rem; color:${expirado ? '#aaa' : 'var(--primary)'};">${s.nombre || 'Supervisión'}</strong>
+                    <span style="font-size:0.73rem; color:#888;">👤 ${nombreStaff}</span>
                     <span style="font-size:0.73rem; padding:2px 8px; border-radius:20px; font-weight:600;
                                  background:${tipoDia.tipo === 'fds' ? '#eaf7f0' : '#fef9e7'};
                                  color:${tipoDia.color};">${tipoDia.texto}</span>
