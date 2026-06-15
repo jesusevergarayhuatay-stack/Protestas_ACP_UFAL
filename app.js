@@ -470,8 +470,11 @@ function initFirebaseCatalogos() {
         // Poblar select de protestas
         const protestList = document.getElementById('protest-name');
         if (protestList) {
+            const protestasArr = Array.isArray(data.protestas)
+                ? data.protestas
+                : Object.values(data.protestas || {});
             protestList.innerHTML = '<option value="">Selecciona protesta...</option>' +
-                (data.protestas || []).map(p => `<option value="${p}">${p}</option>`).join('');
+                protestasArr.map(p => `<option value="${p}">${p}</option>`).join('');
         }
 
         // Actualizar datalists de puntos si hay una categoría seleccionada
