@@ -137,7 +137,7 @@ function renderCompPanel() {
             <div style="background:#f9fafb; border-radius:12px; padding:14px; text-align:center;">
                 <p style="font-size:0.75rem; color:#777; margin:0 0 4px;">Saldo disponible</p>
                 <p id="comp-saldo-disponible" style="font-size:1.5rem; font-weight:700; margin:0; color:#2980b9;">0 h</p>
-                <p style="font-size:0.7rem; color:#aaa; margin:2px 0 0;">para pedir permiso</p>
+                <p style="font-size:0.7rem; color:#aaa; margin:2px 0 0;">para compensación</p>
             </div>
         </div>
 
@@ -215,17 +215,17 @@ function renderCompPanel() {
                         </select>
                     </div>
                     <div>
-                        <label class="comp-label">Fecha del permiso</label>
+                        <label class="comp-label">Fecha de la compensación</label>
                         <input type="date" id="comp-plan-fecha" style="width:100%;" onchange="compActualizarPreviewPlan()">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
                     <div>
-                        <label class="comp-label">Hora de inicio del permiso</label>
+                        <label class="comp-label">Hora de inicio de la compensación</label>
                         <input type="time" id="comp-plan-inicio" style="width:100%;" value="09:00" onchange="compActualizarPreviewPlan()">
                     </div>
                     <div>
-                        <label class="comp-label">Hora de término del permiso</label>
+                        <label class="comp-label">Hora de término de la compensación</label>
                         <input type="time" id="comp-plan-fin" style="width:100%;" value="13:00" onchange="compActualizarPreviewPlan()">
                     </div>
                 </div>
@@ -235,14 +235,14 @@ function renderCompPanel() {
                     <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; align-items:center;">
                         <span style="font-size:0.82rem; color:#555;">Horas a descontar: <strong id="comp-plan-descuento" style="color:var(--primary);"></strong></span>
                         <span style="font-size:0.82rem; color:#555;">Saldo actual: <strong id="comp-plan-saldo-actual" style="color:#27ae60;"></strong></span>
-                        <span style="font-size:0.82rem; color:#555;">Saldo tras el permiso: <strong id="comp-plan-saldo-post" style=""></strong></span>
+                        <span style="font-size:0.82rem; color:#555;">Saldo tras la compensación: <strong id="comp-plan-saldo-post" style=""></strong></span>
                     </div>
                     <div id="comp-plan-aviso" style="margin-top:8px; font-size:0.78rem; color:#c0392b; display:none;"></div>
                 </div>
 
                 <div style="display:flex; justify-content:flex-end;">
                     <button onclick="compGuardarPermiso()" style="background:var(--primary); color:white; border:none; border-radius:8px; padding:9px 20px; font-weight:700; cursor:pointer;">
-                        Registrar permiso ✅
+                        Registrar compensación ✅
                     </button>
                 </div>
             </div>
@@ -280,30 +280,32 @@ function renderCompPanel() {
                 <p style="text-align:center; color:#aaa; font-size:0.85rem; padding:20px 0;">Cargando...</p>
             </div>
 
-            <!-- Resumen semanal + botón correo -->
-            <div id="comp-semana-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:#f9fafb; border-radius:10px; padding:12px 16px; margin-bottom:16px;">
-                <div id="comp-semana-stats" style="font-size:0.82rem; color:#555;"></div>
-                <button onclick="compGenerarTextoCorreo()"
-                    style="background:var(--primary); color:white; border:none; border-radius:8px; padding:9px 16px; font-weight:700; cursor:pointer; white-space:nowrap;">
-                    ✉️ Generar correo para el adjunto
-                </button>
+            <!-- Resumen semanal -->
+            <div id="comp-semana-footer" style="background:#f9fafb; border-radius:10px; padding:12px 16px; margin-bottom:16px;">
+                <div id="comp-semana-stats" style="font-size:0.82rem; color:#555; margin-bottom:12px;"></div>
+                <!-- Selector de rango para PDF -->
+                <div style="background:white; border:1.5px solid #e8edf3; border-radius:10px; padding:14px;">
+                    <p style="font-size:0.82rem; font-weight:600; color:var(--primary); margin:0 0 10px;">📄 Generar calendario de compensaciones en PDF</p>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                        <div>
+                            <label class="comp-label">Desde</label>
+                            <input type="date" id="comp-pdf-desde" style="padding:7px 10px; border:1px solid #ddd; border-radius:7px; font-size:0.85rem;">
+                        </div>
+                        <div>
+                            <label class="comp-label">Hasta</label>
+                            <input type="date" id="comp-pdf-hasta" style="padding:7px 10px; border:1px solid #ddd; border-radius:7px; font-size:0.85rem;">
+                        </div>
+                        <button onclick="compGenerarPDF()"
+                            style="background:var(--primary); color:white; border:none; border-radius:8px; padding:9px 16px; font-weight:700; cursor:pointer; white-space:nowrap;">
+                            📄 Generar PDF
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Saldos individuales -->
             <h4 style="font-size:0.88rem; color:var(--primary); margin-bottom:10px; margin-top:4px;">Saldos individuales</h4>
             <div id="comp-resumen-saldos"></div>
-
-            <!-- Texto del correo -->
-            <div id="comp-correo-wrap" style="display:none; margin-top:20px;">
-                <h4 style="font-size:0.9rem; color:var(--primary); margin-bottom:8px;">📧 Texto para correo al Adjunto</h4>
-                <div id="comp-correo-texto" style="background:white; border:1.5px solid #e8edf3; border-radius:10px; padding:14px; font-size:0.83rem; line-height:1.7; white-space:pre-wrap; color:#333;"></div>
-                <div style="display:flex; gap:10px; margin-top:10px; justify-content:flex-end;">
-                    <button onclick="compCopiarCorreo()"
-                        style="background:#27ae60; color:white; border:none; border-radius:8px; padding:8px 16px; font-weight:700; cursor:pointer;">
-                        📋 Copiar texto
-                    </button>
-                </div>
-            </div>
         </div>
 
     </div>
@@ -474,7 +476,7 @@ function compGuardarPermiso() {
     if (ref) {
         ref.push(permiso)
             .then(() => {
-                showToast && showToast('✅ Permiso registrado correctamente', '#27ae60');
+                showToast && showToast('✅ Compensación registrada correctamente', '#27ae60');
                 document.getElementById('comp-plan-preview').style.display = 'none';
             })
             .catch(err => alert('Error al guardar: ' + err.message));
@@ -482,7 +484,7 @@ function compGuardarPermiso() {
         if (!_compPermisosCache[staffKey]) _compPermisosCache[staffKey] = [];
         _compPermisosCache[staffKey].unshift({ id: Date.now().toString(), ...permiso });
         compActualizarUI();
-        showToast && showToast('✅ Permiso registrado (modo local)', '#27ae60');
+        showToast && showToast('✅ Compensación registrada (modo local)', '#27ae60');
     }
 }
 
@@ -584,11 +586,15 @@ function compRenderListaPermisos() {
         return;
     }
 
+    const staffActivoPlan = COMP_STAFF.find(s => s.key === _compStaffActivo);
+    const nombreStaffPlan = staffActivoPlan ? staffActivoPlan.nombre : _compStaffActivo;
+
     container.innerHTML = permisos.map(p => {
         const tomado = p.fechaPermiso <= hoy;
         return `
         <div class="comp-permiso-card">
             <div>
+                <span style="font-size:0.73rem; color:#888; display:block; margin-bottom:3px;">👤 ${nombreStaffPlan}</span>
                 <span style="font-size:0.88rem; font-weight:600; color:${tomado ? '#27ae60' : '#2980b9'};">
                     ${tomado ? '✅' : '🗓️'} ${compFormatFecha(p.fechaPermiso)}
                 </span>
@@ -818,7 +824,85 @@ function compRenderResumen() {
 }
 
 // =============================================
-// GENERAR TEXTO PARA CORREO AL ADJUNTO
+// GENERAR PDF CALENDARIO DE COMPENSACIONES
+// =============================================
+function compGenerarPDF() {
+    const desde = document.getElementById('comp-pdf-desde')?.value;
+    const hasta  = document.getElementById('comp-pdf-hasta')?.value;
+
+    if (!desde || !hasta) { alert('Selecciona el rango de fechas.'); return; }
+    if (desde > hasta)    { alert('La fecha de inicio debe ser anterior a la fecha de fin.'); return; }
+
+    // Recolectar compensaciones en el rango, por persona
+    const filas = [];
+    COMP_STAFF.forEach(s => {
+        (_compPermisosCache[s.key] || [])
+            .filter(p => p.fechaPermiso >= desde && p.fechaPermiso <= hasta)
+            .sort((a, b) => a.fechaPermiso.localeCompare(b.fechaPermiso))
+            .forEach(p => {
+                const fecha = new Date(p.fechaPermiso + 'T00:00:00');
+                const dia = COMP_DIAS[fecha.getDay()];
+                filas.push([
+                    s.nombre,
+                    dia.charAt(0).toUpperCase() + dia.slice(1),
+                    compFormatFecha(p.fechaPermiso),
+                    `${p.horaInicio} – ${p.horaFin}`,
+                    compFormatHoras(p.horas || 0)
+                ]);
+            });
+    });
+
+    const totalHoras = COMP_STAFF.reduce((acc, s) =>
+        acc + (_compPermisosCache[s.key] || [])
+            .filter(p => p.fechaPermiso >= desde && p.fechaPermiso <= hasta)
+            .reduce((a, p) => a + (p.horas || 0), 0), 0);
+
+    const ahora = new Date();
+    const hoy = `${ahora.getDate()} de ${COMP_MESES[ahora.getMonth()]} de ${ahora.getFullYear()}`;
+    const dDesde = new Date(desde + 'T00:00:00');
+    const dHasta = new Date(hasta  + 'T00:00:00');
+    const rangoTexto = `${dDesde.getDate()} de ${COMP_MESES[dDesde.getMonth()]} al ${dHasta.getDate()} de ${COMP_MESES[dHasta.getMonth()]} de ${dHasta.getFullYear()}`;
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Calendario de Compensaciones', 105, 18, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text('Adjuntía para la Prevención de Conflictos Sociales y Gobernabilidad', 105, 25, { align: 'center' });
+    doc.text(`Período: ${rangoTexto}`, 105, 31, { align: 'center' });
+    doc.text(`Generado el: ${hoy}`, 105, 37, { align: 'center' });
+    doc.setTextColor(0);
+
+    if (filas.length) {
+        doc.autoTable({
+            startY: 45,
+            head: [['Comisionado/a', 'Día', 'Fecha', 'Horario', 'Horas']],
+            body: filas,
+            styles: { fontSize: 9, cellPadding: 4 },
+            headStyles: { fillColor: [24, 95, 165], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [240, 246, 252] },
+            columnStyles: { 4: { halign: 'center' } }
+        });
+        const finalY = doc.lastAutoTable.finalY + 8;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total de horas en el período: ${compFormatHoras(totalHoras)}`, 14, finalY);
+    } else {
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text('No se registraron compensaciones en el período seleccionado.', 14, 52);
+    }
+
+    doc.save(`compensaciones_${desde}_al_${hasta}.pdf`);
+}
+
+// =============================================
+// GENERAR TEXTO PARA CORREO AL ADJUNTO (legacy, no expuesto en UI)
 // =============================================
 function compGenerarTextoCorreo() {
     // Usar la semana visible en el calendario
