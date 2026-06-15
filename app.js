@@ -310,7 +310,20 @@ function showSection(id) {
 }
 
 function showAcpForm() { showSection('acp-section'); }
-function showPlanForm() { showSection('start-section'); }
+function showPlanForm() {
+    showSection('start-section');
+    const protestList = document.getElementById('protest-name');
+    if (protestList) {
+        const snap = fbRef('configuracion/catalogos/protestas');
+        if (snap) snap.once('value').then(s => {
+            const raw = s.val();
+            if (!raw) return;
+            const arr = Array.isArray(raw) ? raw : Object.values(raw);
+            protestList.innerHTML = '<option value="">Selecciona protesta...</option>' +
+                arr.map(p => `<option value="${p}">${p}</option>`).join('');
+        });
+    }
+}
 
 // --- NAVEGACIÓN MÚLTIPLES MÓDULOS (v3.0) ---
 let _alertasModuleInited = false;
