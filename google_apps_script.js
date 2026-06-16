@@ -13,16 +13,6 @@ var HEADERS_ALERTAS = [
     "Documentos (URLs)", "Registrado Por", "ID Firebase"
 ];
 
-var HEADERS_SUPERVISION = [
-    "Comisionado", "Fecha", "Hora Inicio", "Hora Fin",
-    "Nombre Supervisión", "Horas Compensables", "Tipo Día", "Expira", "Timestamp"
-];
-
-var HEADERS_COMPENSACION = [
-    "Comisionado", "Fecha Compensación", "Hora Inicio", "Hora Fin",
-    "Horas", "Timestamp"
-];
-
 var HEADERS_ACP = [
     "Código", "Fecha Registro", "Fecha Evento", "Nombre del Evento",
     "Tipo de Medida", "Tipo de Demanda", "Demandas", "Descripción",
@@ -365,37 +355,6 @@ function doPost(e) {
                         .setBackground('#fce4e4');
                 }
             }
-        }
-
-        // --- ACCIÓN: GUARDAR SUPERVISIÓN (COMPENSACIÓN DE HORAS) ---
-        else if (action === 'supervision') {
-            var sheetSup = getOrCreateSheetWithHeaders(ss, "Supervisiones", HEADERS_SUPERVISION);
-            var d = data;
-            sheetSup.appendRow([
-                d.comisionado || '',
-                d.fecha || '',
-                d.horaInicio || '',
-                d.horaFin || '',
-                d.nombre || '',
-                d.horasCompensables || 0,
-                d.tipoDia || '',
-                d.expira || '',
-                d.timestamp ? new Date(d.timestamp).toISOString() : ''
-            ]);
-        }
-
-        // --- ACCIÓN: GUARDAR COMPENSACIÓN (PERMISO) ---
-        else if (action === 'compensacion') {
-            var sheetComp = getOrCreateSheetWithHeaders(ss, "Compensaciones", HEADERS_COMPENSACION);
-            var d = data;
-            sheetComp.appendRow([
-                d.comisionado || '',
-                d.fechaPermiso || '',
-                d.horaInicio || '',
-                d.horaFin || '',
-                d.horas || 0,
-                d.timestamp ? new Date(d.timestamp).toISOString() : ''
-            ]);
         }
 
         // --- ACCIÓN: GENERAR REPORTE DOC ---

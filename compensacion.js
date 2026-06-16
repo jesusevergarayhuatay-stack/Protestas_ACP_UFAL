@@ -424,7 +424,6 @@ function compGuardarSupervision() {
                 document.getElementById('comp-reg-inicio').value = '';
                 document.getElementById('comp-reg-fin').value = '';
                 document.getElementById('comp-reg-preview').style.display = 'none';
-                syncSupervisionToSheets({ ...registro, comisionado: COMP_STAFF.find(s => s.key === staffKey)?.nombre || staffKey });
             })
             .catch(err => alert('Error al guardar: ' + err.message));
     } else {
@@ -479,7 +478,6 @@ function compGuardarPermiso() {
             .then(() => {
                 showToast && showToast('✅ Compensación registrada correctamente', '#27ae60');
                 document.getElementById('comp-plan-preview').style.display = 'none';
-                syncCompensacionToSheets({ ...permiso, comisionado: COMP_STAFF.find(s => s.key === staffKey)?.nombre || staffKey });
             })
             .catch(err => alert('Error al guardar: ' + err.message));
     } else {
@@ -826,7 +824,7 @@ function compRenderResumen() {
 }
 
 // =============================================
-// GENERAR CALENDARIO HTML (abre en nueva pestaña, imprimir = PDF)
+// GENERAR PDF CALENDARIO DE COMPENSACIONES
 // =============================================
 function compGenerarPDF() {
     const desde = document.getElementById('comp-pdf-desde')?.value;
@@ -835,142 +833,72 @@ function compGenerarPDF() {
     if (!desde || !hasta) { alert('Selecciona el rango de fechas.'); return; }
     if (desde > hasta)    { alert('La fecha de inicio debe ser anterior a la fecha de fin.'); return; }
 
-    // Compensaciones por fecha
-    const byDate = {};
+    // Recolectar compensaciones en el rango, por persona
+    const filas = [];
     COMP_STAFF.forEach(s => {
         (_compPermisosCache[s.key] || [])
             .filter(p => p.fechaPermiso >= desde && p.fechaPermiso <= hasta)
+            .sort((a, b) => a.fechaPermiso.localeCompare(b.fechaPermiso))
             .forEach(p => {
-                if (!byDate[p.fechaPermiso]) byDate[p.fechaPermiso] = [];
-                byDate[p.fechaPermiso].push({ staff: s, horaInicio: p.horaInicio, horaFin: p.horaFin, horas: p.horas });
+                const fecha = new Date(p.fechaPermiso + 'T00:00:00');
+                const dia = COMP_DIAS[fecha.getDay()];
+                filas.push([
+                    s.nombre,
+                    dia.charAt(0).toUpperCase() + dia.slice(1),
+                    compFormatFecha(p.fechaPermiso),
+                    `${p.horaInicio} – ${p.horaFin}`,
+                    compFormatHoras(p.horas || 0)
+                ]);
             });
     });
-
-    const COLORS = {
-        porfirio:  { bg: '#fef3c7', border: '#d97706', text: '#78350f', cell: '#fffbeb' },
-        jefferson: { bg: '#ffe4e6', border: '#e11d48', text: '#881337', cell: '#fff1f2' },
-        piter:     { bg: '#f3e8ff', border: '#9333ea', text: '#581c87', cell: '#faf5ff' },
-        alessia:   { bg: '#dbeafe', border: '#3b82f6', text: '#1e3a8a', cell: '#f0f7ff' },
-        jesus:     { bg: '#dcfce7', border: '#16a34a', text: '#14532d', cell: '#f0fdf4' }
-    };
-    const MESES_N = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-    function isoDate(d) { return d.toISOString().split('T')[0]; }
-
-    // Calcular semanas Lun-Vie que cubren el rango
-    const dDesde = new Date(desde + 'T00:00:00');
-    const dHasta = new Date(hasta  + 'T00:00:00');
-
-    const startMon = new Date(dDesde);
-    const dow0 = startMon.getDay();
-    startMon.setDate(startMon.getDate() - (dow0 === 0 ? 6 : dow0 - 1));
-
-    const endFri = new Date(dHasta);
-    const dow1 = endFri.getDay();
-    if (dow1 !== 5) endFri.setDate(endFri.getDate() + (dow1 === 0 ? 5 : (5 - dow1 + 7) % 7));
-
-    const weeks = [];
-    const cur = new Date(startMon);
-    while (cur <= endFri) {
-        const week = [];
-        for (let d = 0; d < 5; d++) { week.push(new Date(cur)); cur.setDate(cur.getDate() + 1); }
-        cur.setDate(cur.getDate() + 2); // saltar sab+dom
-        weeks.push(week);
-    }
-
-    // Agrupar por mes (por el jueves de cada semana)
-    const monthMap = {};
-    weeks.forEach(week => {
-        const thu = week[3];
-        const key = `${thu.getFullYear()}-${thu.getMonth()}`;
-        if (!monthMap[key]) monthMap[key] = { year: thu.getFullYear(), month: thu.getMonth(), weeks: [] };
-        monthMap[key].weeks.push(week);
-    });
-
-    // HTML de meses
-    let monthsHtml = '';
-    Object.values(monthMap).forEach(({ year, month, weeks: mw }) => {
-        let rowsHtml = '';
-        mw.forEach(week => {
-            let cells = '';
-            week.forEach(day => {
-                const iso = isoDate(day);
-                const inRange = iso >= desde && iso <= hasta;
-                const entries = byDate[iso] || [];
-                if (!inRange) { cells += `<td style="background:#f8fafc;border-color:transparent;box-shadow:none;border-radius:10px;padding:10px;vertical-align:top;"></td>`; return; }
-                const c0 = entries.length === 1 ? (COLORS[entries[0].staff.key]?.cell || '#fff') : '#fff';
-                let badges = entries.map(e => {
-                    const c = COLORS[e.staff.key] || { bg: '#f0f0f0', border: '#999', text: '#333' };
-                    return `<div style="display:flex;flex-direction:column;width:100%;margin-bottom:5px;padding:5px 7px;border-radius:6px;border-left:3px solid ${c.border};background:${c.bg};color:${c.text};">
-                        <span style="font-weight:700;font-size:11px;">${e.staff.nombre}</span>
-                        <span style="font-size:11px;opacity:.8;">${e.horaInicio} – ${e.horaFin}</span>
-                    </div>`;
-                }).join('');
-                cells += `<td style="background:${c0};border:1.5px solid #e2e8f0;border-radius:10px;vertical-align:top;padding:10px;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);">
-                    <span style="font-family:monospace;font-size:15px;font-weight:500;color:#0f172a;display:block;margin-bottom:6px;">${day.getDate()}</span>
-                    ${badges || ''}
-                </td>`;
-            });
-            rowsHtml += `<tr>${cells}</tr>`;
-        });
-        const thStyle = `background:#0f172a;color:rgba(255,255,255,.85);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:10px 8px;border-radius:10px;text-align:center;`;
-        monthsHtml += `
-        <div style="margin-bottom:44px;">
-            <div style="font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#64748b;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
-                ${MESES_N[month]} ${year}<span style="flex:1;height:1px;background:#e2e8f0;display:block;"></span>
-            </div>
-            <table style="width:100%;border-collapse:separate;border-spacing:6px;table-layout:fixed;">
-                <tr>
-                    <th style="${thStyle}">Lunes</th><th style="${thStyle}">Martes</th>
-                    <th style="${thStyle}">Miércoles</th><th style="${thStyle}">Jueves</th><th style="${thStyle}">Viernes</th>
-                </tr>
-                ${rowsHtml}
-            </table>
-        </div>`;
-    });
-
-    // Leyenda
-    const legend = COMP_STAFF.map(s => {
-        const c = COLORS[s.key] || { bg: '#f0f0f0', border: '#999', text: '#333' };
-        return `<div style="display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;background:${c.bg};border:1.5px solid ${c.border};color:${c.text};">
-            <span style="width:9px;height:9px;border-radius:50%;background:${c.border};display:inline-block;"></span>${s.nombre}
-        </div>`;
-    }).join('');
 
     const totalHoras = COMP_STAFF.reduce((acc, s) =>
         acc + (_compPermisosCache[s.key] || [])
             .filter(p => p.fechaPermiso >= desde && p.fechaPermiso <= hasta)
             .reduce((a, p) => a + (p.horas || 0), 0), 0);
 
-    const dD = new Date(desde + 'T00:00:00'), dH = new Date(hasta + 'T00:00:00');
-    const rango = `${dD.getDate()} de ${MESES_N[dD.getMonth()]} al ${dH.getDate()} de ${MESES_N[dH.getMonth()]} de ${dH.getFullYear()}`;
+    const ahora = new Date();
+    const hoy = `${ahora.getDate()} de ${COMP_MESES[ahora.getMonth()]} de ${ahora.getFullYear()}`;
+    const dDesde = new Date(desde + 'T00:00:00');
+    const dHasta = new Date(hasta  + 'T00:00:00');
+    const rangoTexto = `${dDesde.getDate()} de ${COMP_MESES[dDesde.getMonth()]} al ${dHasta.getDate()} de ${COMP_MESES[dHasta.getMonth()]} de ${dHasta.getFullYear()}`;
 
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
-<title>Calendario de Compensaciones</title>
-<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;padding:40px 32px 60px;min-width:900px;}@media print{body{padding:16px;min-width:unset;}div{page-break-inside:avoid;}.no-print{display:none!important;}}</style>
-</head><body>
-<div style="display:flex;align-items:center;gap:16px;margin-bottom:40px;">
-    <div style="width:44px;height:44px;background:#0f172a;border-radius:10px;display:grid;place-items:center;flex-shrink:0;">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    </div>
-    <div>
-        <h1 style="font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-.4px;">Calendario de Compensaciones</h1>
-        <p style="font-size:13px;color:#64748b;margin-top:2px;">Adjuntía para la Prevención de Conflictos Sociales · ${rango}</p>
-    </div>
-    <div style="margin-left:auto;" class="no-print">
-        <button onclick="window.print()" style="background:#0f172a;color:white;border:none;border-radius:8px;padding:9px 18px;font-weight:600;cursor:pointer;font-size:13px;">🖨️ Imprimir / Guardar PDF</button>
-    </div>
-</div>
-<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:36px;">${legend}</div>
-${monthsHtml || '<p style="color:#64748b;text-align:center;padding:40px;">No se registraron compensaciones en el período seleccionado.</p>'}
-<div style="margin-top:20px;padding:14px 20px;background:white;border-radius:10px;border:1px solid #e2e8f0;font-size:13px;">
-    <strong>Total de horas en el período:</strong> ${compFormatHoras(totalHoras)}
-</div>
-</body></html>`;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Calendario de Compensaciones', 105, 18, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text('Adjuntía para la Prevención de Conflictos Sociales y Gobernabilidad', 105, 25, { align: 'center' });
+    doc.text(`Período: ${rangoTexto}`, 105, 31, { align: 'center' });
+    doc.text(`Generado el: ${hoy}`, 105, 37, { align: 'center' });
+    doc.setTextColor(0);
+
+    if (filas.length) {
+        doc.autoTable({
+            startY: 45,
+            head: [['Comisionado/a', 'Día', 'Fecha', 'Horario', 'Horas']],
+            body: filas,
+            styles: { fontSize: 9, cellPadding: 4 },
+            headStyles: { fillColor: [24, 95, 165], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [240, 246, 252] },
+            columnStyles: { 4: { halign: 'center' } }
+        });
+        const finalY = doc.lastAutoTable.finalY + 8;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total de horas en el período: ${compFormatHoras(totalHoras)}`, 14, finalY);
+    } else {
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text('No se registraron compensaciones en el período seleccionado.', 14, 52);
+    }
+
+    doc.save(`compensaciones_${desde}_al_${hasta}.pdf`);
 }
 
 // =============================================
@@ -1117,16 +1045,14 @@ function compActualizarCalculo() {
 }
 
 // =============================================
-// VISTA PREVIA EN TIEMPO REAL — COMPENSACIÓN
+// VISTA PREVIA EN TIEMPO REAL — PERMISO
 // =============================================
 function compActualizarPreviewPlan() {
     const staffKey = document.getElementById('comp-plan-staff')?.value;
-    const fecha    = document.getElementById('comp-plan-fecha')?.value;
     const inicio   = document.getElementById('comp-plan-inicio')?.value;
     const fin      = document.getElementById('comp-plan-fin')?.value;
     const preview  = document.getElementById('comp-plan-preview');
-    if (!preview) return;
-    if (!staffKey || !fecha || !inicio || !fin) { preview.style.display = 'none'; return; }
+    if (!preview || !inicio || !fin || !staffKey) { if (preview) preview.style.display = 'none'; return; }
 
     const [h1, m1] = inicio.split(':').map(Number);
     const [h2, m2] = fin.split(':').map(Number);
@@ -1134,17 +1060,18 @@ function compActualizarPreviewPlan() {
     if (horas <= 0) { preview.style.display = 'none'; return; }
 
     const { ganadas, usadas } = compCalcularSaldo(staffKey);
-    const saldo    = ganadas - usadas;
+    const saldo = ganadas - usadas;
     const saldoPost = saldo - horas;
 
-    const elDesc   = document.getElementById('comp-plan-descuento');
-    const elSaldo  = document.getElementById('comp-plan-saldo-actual');
-    const elPost   = document.getElementById('comp-plan-saldo-post');
-    const elAviso  = document.getElementById('comp-plan-aviso');
+    const elDesc    = document.getElementById('comp-plan-descuento');
+    const elSaldo   = document.getElementById('comp-plan-saldo-actual');
+    const elPost    = document.getElementById('comp-plan-saldo-post');
+    const elAviso   = document.getElementById('comp-plan-aviso');
 
     if (elDesc)  elDesc.textContent  = compFormatHoras(horas);
     if (elSaldo) elSaldo.textContent = compFormatHoras(saldo);
     if (elPost) {
+        elPost.textContent = compFormatHoras(Math.abs(saldoPost));
         elPost.style.color = saldoPost < 0 ? '#e74c3c' : '#27ae60';
         elPost.textContent = saldoPost < 0
             ? `−${compFormatHoras(Math.abs(saldoPost))} (déficit)`
@@ -1152,8 +1079,8 @@ function compActualizarPreviewPlan() {
     }
     if (elAviso) {
         if (saldoPost < -0.01) {
-            elAviso.textContent = '⚠️ Este permiso supera el saldo disponible. Se registrará como anticipado.';
             elAviso.style.display = 'block';
+            elAviso.textContent = `⚠️ Este permiso supera el saldo disponible. Se registrará como anticipado.`;
         } else {
             elAviso.style.display = 'none';
         }
@@ -1163,25 +1090,88 @@ function compActualizarPreviewPlan() {
 }
 
 // =============================================
-// SYNC CON GOOGLE SHEETS — SUPERVISIÓN
+// CAMBIAR PERSONA ACTIVA
 // =============================================
-function syncSupervisionToSheets(data) {
-    if (typeof GOOGLE_SHEETS_URL === 'undefined' || !GOOGLE_SHEETS_URL) return;
-    fetch(GOOGLE_SHEETS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action: 'supervision', ...data })
-    }).catch(e => console.warn('[Sheets sync supervision]', e));
+function compSeleccionarStaff(key, updateSelects = true) {
+    _compStaffActivo = key;
+
+    // Resaltar botón activo
+    COMP_STAFF.forEach(s => {
+        const btn = document.getElementById(`comp-staff-btn-${s.key}`);
+        if (!btn) return;
+        if (s.key === key) {
+            btn.style.border = `2px solid ${s.color}`;
+            btn.style.boxShadow = `0 0 0 2px ${s.color}40`;
+        } else {
+            btn.style.border = `2px solid ${s.bg}`;
+            btn.style.boxShadow = 'none';
+        }
+    });
+
+    // Sincronizar selects con la persona activa
+    if (updateSelects) {
+        const regStaff  = document.getElementById('comp-reg-staff');
+        const planStaff = document.getElementById('comp-plan-staff');
+        if (regStaff)  regStaff.value  = key;
+        if (planStaff) planStaff.value = key;
+    }
+
+    compActualizarUI();
 }
 
 // =============================================
-// SYNC CON GOOGLE SHEETS — COMPENSACIÓN
+// CAMBIAR SUB-TAB
 // =============================================
-function syncCompensacionToSheets(data) {
-    if (typeof GOOGLE_SHEETS_URL === 'undefined' || !GOOGLE_SHEETS_URL) return;
-    fetch(GOOGLE_SHEETS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ action: 'compensacion', ...data })
-    }).catch(e => console.warn('[Sheets sync compensacion]', e));
+function compCambiarTab(tab) {
+    _compTabActivo = tab;
+    ['registrar','planificar','resumen'].forEach(t => {
+        const btn   = document.getElementById(`comp-tab-${t}`);
+        const panel = document.getElementById(`comp-panel-${t}`);
+        if (btn)   btn.classList.toggle('active', t === tab);
+        if (panel) panel.style.display = (t === tab) ? 'block' : 'none';
+    });
+    if (tab === 'resumen') { _compSemanaOffset = 0; compRenderResumen(); }
+    if (tab === 'planificar') compActualizarPreviewPlan();
 }
+
+// =============================================
+// ELIMINAR REGISTROS
+// =============================================
+function compEliminarSupervision(staffKey, id) {
+    if (!confirm('¿Eliminar esta supervisión?')) return;
+    const ref = compRef(`supervisiones/${staffKey}/${id}`);
+    if (ref) {
+        ref.remove().catch(err => alert('Error: ' + err.message));
+    } else {
+        _compSupervisionesCache[staffKey] = (_compSupervisionesCache[staffKey] || []).filter(s => s.id !== id);
+        compActualizarUI();
+    }
+}
+
+function compEliminarPermiso(staffKey, id) {
+    if (!confirm('¿Eliminar este permiso?')) return;
+    const ref = compRef(`permisos/${staffKey}/${id}`);
+    if (ref) {
+        ref.remove().catch(err => alert('Error: ' + err.message));
+    } else {
+        _compPermisosCache[staffKey] = (_compPermisosCache[staffKey] || []).filter(p => p.id !== id);
+        compActualizarUI();
+    }
+}
+
+// =============================================
+// EXPORTS GLOBALES
+// =============================================
+window.initCompensacionModule    = initCompensacionModule;
+window.compSeleccionarStaff      = compSeleccionarStaff;
+window.compCambiarTab            = compCambiarTab;
+window.compActualizarCalculo     = compActualizarCalculo;
+window.compActualizarPreviewPlan = compActualizarPreviewPlan;
+window.compGuardarSupervision    = compGuardarSupervision;
+window.compGuardarPermiso        = compGuardarPermiso;
+window.compEliminarSupervision   = compEliminarSupervision;
+window.compEliminarPermiso       = compEliminarPermiso;
+window.compRenderResumen         = compRenderResumen;
+window.compNavSemana             = compNavSemana;
+window.compGenerarTextoCorreo    = compGenerarTextoCorreo;
+window.compCopiarCorreo          = compCopiarCorreo;
