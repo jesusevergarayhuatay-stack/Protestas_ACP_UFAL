@@ -737,7 +737,12 @@ function renderTimeline(list) {
             (inc.cantidad ? '<span style="font-weight:800; margin-left:5px;">[' + inc.cantidad + ']</span>' : '') +
             '</div>' +
             '<div style="word-wrap: break-word;">' + inc.description + '</div>' +
-            (inc.imageUrl ? '<img src="' + inc.imageUrl + '" class="chat-img" onclick="window.open(\'' + inc.imageUrl + '\')">' : '') +
+            (inc.mediaUrls && inc.mediaUrls.length > 0
+                ? inc.mediaUrls.map(m => m.type && m.type.startsWith('image/')
+                    ? '<img src="' + m.url + '" class="chat-img" onclick="window.open(\'' + m.url + '\')">'
+                    : '<video controls src="' + m.url + '" style="width:100%; margin-top:8px; border-radius:8px;"></video>'
+                ).join('')
+                : (inc.imageUrl ? '<img src="' + inc.imageUrl + '" class="chat-img" onclick="window.open(\'' + inc.imageUrl + '\')">' : '')) +
             (inc.audioUrl ? '<audio controls src="' + inc.audioUrl + '" style="width:100%; margin-top:10px; height:35px;"></audio>' : '') +
             '<div class="chat-time">' + timeStr + '</div>' +
             '</div>';
@@ -1099,6 +1104,31 @@ window.showAcpForm    = showAcpForm;
 window.showPlanForm   = showPlanForm;
 window.showSection    = showSection;
 window.openWaModal    = openWaModal;
+
+// Reconexión cuando el móvil vuelve del background
+let _feedListenerActive = false;
+const _origListenSharedFeed = listenSharedFeed;
+function listenSharedFeed() {
+    if (_feedListenerActive) return;
+    _feedListenerActive = true;
+    _origListenSharedFeed();
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (!activeSession) {
+        // Intentar recuperar sesión de localStorage si se perdió
+        const saved = localStorage.getItem('dp_active_session');
+        if (saved) {
+            try { activeSession = JSON.parse(saved); } catch(e) {}
+        }
+    }
+    if (activeSession) {
+        _feedListenerActive = false; // forzar re-suscripción
+        listenSharedFeed();
+        startLocationTracking();
+    }
+});
 
 // Arranque
 document.addEventListener('DOMContentLoaded', init);
