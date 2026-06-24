@@ -894,6 +894,13 @@ document.getElementById('add-incident-btn')?.addEventListener('click', () => ope
 document.getElementById('add-update-btn')?.addEventListener('click', () => openIncidentModal('actualizacion'));
 document.getElementById('cancel-incident-btn')?.addEventListener('click', () => incidentModal.classList.add('hidden-modal'));
 
+// Conectar inputs de archivos con addIncidentFiles
+['incident-photo', 'incident-photo-cam', 'incident-photo-gal', 'incident-video-cam'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', function() {
+        if (this.files?.length) addIncidentFiles(this.files);
+    });
+});
+
 function openIncidentModal(mode) {
     incidentModal.classList.remove('hidden-modal');
     document.getElementById('modal-title').textContent = mode === 'actualizacion' ? 'Enviar Actualización' : 'Reportar Incidencia';
@@ -927,6 +934,10 @@ saveIncidentBtn?.addEventListener('click', async () => {
 
     try {
         // === SUBIR MÚLTIPLES ARCHIVOS (fotos + videos) ===
+        if (incidentMediaFiles.length > 0 && !_fbStorage) {
+            console.warn('[Upload] Firebase Storage no está disponible (_fbStorage es null)');
+            showToast && showToast('⚠️ Storage no disponible — foto no adjuntada', '#e67e22');
+        }
         if (incidentMediaFiles.length > 0 && _fbStorage) {
             const mediaUrls = [];
             for (const m of incidentMediaFiles) {
@@ -939,7 +950,10 @@ saveIncidentBtn?.addEventListener('click', async () => {
                     await ref.put(fileToUpload);
                     const url = await ref.getDownloadURL();
                     mediaUrls.push({ url, type: m.type, name: m.file.name });
-                } catch (e) { /* continuar con el siguiente */ }
+                } catch (e) {
+                    console.error('[Upload foto] Error:', e.code, e.message);
+                    showToast && showToast('⚠️ Error al subir foto: ' + (e.code || e.message), '#e74c3c');
+                }
             }
             if (mediaUrls.length > 0) {
                 // Compatibilidad: el primer archivo de imagen va también en imageUrl
@@ -1094,16 +1108,6 @@ function renderHistory() {
         '<div style="padding:10px; border-bottom:1px solid #eee;"><strong>' + (h.location || h.protestName || '—') + '</strong> — ' + new Date(h.startTime).toLocaleDateString('es-PE') + ' · ' + Math.round(((h.endTime || Date.now()) - h.startTime) / 60000) + ' min</div>'
     ).join('') || '<p style="color:#999;font-size:0.9rem; padding:10px;">Sin registros previos.</p>';
 }
-
-// Exponer funciones que se usan desde HTML (onclick)
-window.showMainMenu   = showMainMenu;
-window.openModule     = openModule;
-window.goToAlertas    = goToAlertas;
-window.goToAcciones   = goToAcciones;
-window.showAcpForm    = showAcpForm;
-window.showPlanForm   = showPlanForm;
-window.showSection    = showSection;
-window.openWaModal    = openWaModal;
 
 // Reconexión cuando el móvil vuelve del background
 document.addEventListener('visibilitychange', () => {
