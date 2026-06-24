@@ -389,8 +389,8 @@ function renderToolkit() {
 
 // --- INICIALIZACIÓN ---
 function init() {
-    activeSession = JSON.parse(localStorage.getItem('dp_active_session'));
-    history = JSON.parse(localStorage.getItem('dp_history')) || [];
+    try { activeSession = JSON.parse(localStorage.getItem('dp_active_session')); } catch(e) { activeSession = null; }
+    try { history = JSON.parse(localStorage.getItem('dp_history')) || []; } catch(e) { history = []; }
 
     // Fechas
     const dateLima = document.getElementById('date');
@@ -457,7 +457,7 @@ function init() {
     restoreSupervisorData();
 
     if (activeSession) {
-        showActiveSession();
+        try { showActiveSession(); } catch(e) { console.error('[init] showActiveSession falló:', e); }
         openModule('modulo-supervision');
     } else {
         showSection('selection-section');
@@ -1106,25 +1106,13 @@ window.showSection    = showSection;
 window.openWaModal    = openWaModal;
 
 // Reconexión cuando el móvil vuelve del background
-let _feedListenerActive = false;
-const _origListenSharedFeed = listenSharedFeed;
-function listenSharedFeed() {
-    if (_feedListenerActive) return;
-    _feedListenerActive = true;
-    _origListenSharedFeed();
-}
-
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
     if (!activeSession) {
-        // Intentar recuperar sesión de localStorage si se perdió
         const saved = localStorage.getItem('dp_active_session');
-        if (saved) {
-            try { activeSession = JSON.parse(saved); } catch(e) {}
-        }
+        if (saved) { try { activeSession = JSON.parse(saved); } catch(e) {} }
     }
     if (activeSession) {
-        _feedListenerActive = false; // forzar re-suscripción
         listenSharedFeed();
         startLocationTracking();
     }
