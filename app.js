@@ -728,7 +728,16 @@ function renderTimeline(list) {
             (inc.cantidad ? '<span style="font-weight:800; margin-left:5px;">[' + inc.cantidad + ']</span>' : '') +
             '</div>' +
             '<div style="word-wrap: break-word;">' + inc.description + '</div>' +
-            (inc.imageUrl ? '<img src="' + inc.imageUrl + '" class="chat-img" onclick="window.open(\'' + inc.imageUrl + '\')">' : '') +
+            (inc.mediaUrls && inc.mediaUrls.length > 0
+                ? inc.mediaUrls.map(m => {
+                    if (m.type && m.type.startsWith('video/')) {
+                        return '<video controls src="' + m.url + '" style="width:100%;max-height:240px;border-radius:8px;margin-top:8px;" playsinline></video>';
+                    } else {
+                        return '<img src="' + m.url + '" class="chat-img" onclick="window.open(\'' + m.url + '\')">';
+                    }
+                }).join('')
+                : (inc.imageUrl ? '<img src="' + inc.imageUrl + '" class="chat-img" onclick="window.open(\'' + inc.imageUrl + '\')">' : '')
+            ) +
             (inc.audioUrl ? '<audio controls src="' + inc.audioUrl + '" style="width:100%; margin-top:10px; height:35px;"></audio>' : '') +
             '<div class="chat-time">' + timeStr + '</div>' +
             '</div>';
@@ -1129,9 +1138,11 @@ window.goToAlertas    = goToAlertas;
 window.goToAcciones   = goToAcciones;
 window.showAcpForm    = showAcpForm;
 window.showPlanForm   = showPlanForm;
-window.showSection    = showSection;
-window.openWaModal    = openWaModal;
-window.adminLogin     = adminLogin;
+window.showSection        = showSection;
+window.openWaModal        = openWaModal;
+window.adminLogin         = adminLogin;
+window.addIncidentFiles   = addIncidentFiles;
+window.removeIncidentFile = removeIncidentFile;
 
 // Arranque
 document.addEventListener('DOMContentLoaded', init);

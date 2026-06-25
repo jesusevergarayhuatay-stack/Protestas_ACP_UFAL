@@ -450,7 +450,13 @@ function updateGlobalFeed(sessions) {
             <div class="chat-author">${inc.author} en ${inc.sessionLocation} (${inc.protestRoom || 'OD'})</div>
             <div style="font-weight:700; margin:5px 0; color:${getIncidentColor(inc.clasificacion)};">${inc.clasificacion}</div>
             <div>${inc.description}</div>
-            ${inc.imageUrl ? `<img src="${inc.imageUrl}" style="width:100%; border-radius:8px; margin-top:10px; cursor:pointer;" onclick="window.open('${inc.imageUrl}')">` : ''}
+            ${inc.mediaUrls && inc.mediaUrls.length > 0
+                ? inc.mediaUrls.map(m => m.type && m.type.startsWith('video/')
+                    ? `<video controls src="${m.url}" style="width:100%;max-height:240px;border-radius:8px;margin-top:8px;" playsinline></video>`
+                    : `<img src="${m.url}" style="width:100%; border-radius:8px; margin-top:10px; cursor:pointer;" onclick="window.open('${m.url}')">`
+                ).join('')
+                : (inc.imageUrl ? `<img src="${inc.imageUrl}" style="width:100%; border-radius:8px; margin-top:10px; cursor:pointer;" onclick="window.open('${inc.imageUrl}')">` : '')
+            }
             ${inc.audioUrl ? `<audio controls src="${inc.audioUrl}" style="width:100%; height:30px; margin-top:10px;"></audio>` : ''}
             <div class="chat-time">${new Date(inc.timestamp).toLocaleTimeString()}</div>
         </div>`).join('') || '<p style="text-align:center; padding:20px; color:#999;">Esperando incidencias...</p>';
