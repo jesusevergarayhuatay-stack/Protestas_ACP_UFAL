@@ -310,20 +310,7 @@ function showSection(id) {
 }
 
 function showAcpForm() { showSection('acp-section'); }
-function showPlanForm() {
-    showSection('start-section');
-    const protestList = document.getElementById('protest-name');
-    if (protestList) {
-        const snap = fbRef('configuracion/catalogos/protestas');
-        if (snap) snap.once('value').then(s => {
-            const raw = s.val();
-            if (!raw) return;
-            const arr = Array.isArray(raw) ? raw : Object.values(raw);
-            protestList.innerHTML = '<option value="">Selecciona protesta...</option>' +
-                arr.map(p => `<option value="${p}">${p}</option>`).join('');
-        });
-    }
-}
+function showPlanForm() { showSection('start-section'); }
 
 // --- NAVEGACIÓN MÚLTIPLES MÓDULOS (v3.0) ---
 let _alertasModuleInited = false;
@@ -389,8 +376,8 @@ function renderToolkit() {
 
 // --- INICIALIZACIÓN ---
 function init() {
-    try { activeSession = JSON.parse(localStorage.getItem('dp_active_session')); } catch(e) { activeSession = null; }
-    try { history = JSON.parse(localStorage.getItem('dp_history')) || []; } catch(e) { history = []; }
+    activeSession = JSON.parse(localStorage.getItem('dp_active_session'));
+    history = JSON.parse(localStorage.getItem('dp_history')) || [];
 
     // Fechas
     const dateLima = document.getElementById('date');
@@ -404,12 +391,20 @@ function init() {
     document.querySelectorAll('.back-link').forEach(btn => btn.addEventListener('click', () => showSection('selection-section')));
     document.getElementById('export-btn')?.addEventListener('click', exportData);
 
+    // Aviso si el usuario intenta cerrar/recargar con supervisión activa
+    window.addEventListener('beforeunload', e => {
+        if (activeSession && !activeSession.endTime) {
+            e.preventDefault();
+            e.returnValue = '¿Seguro que quieres salir? La supervisión está en curso y perderás el progreso no guardado.';
+        }
+    });
+
     // Docs Modal
     document.getElementById('view-docs-btn')?.addEventListener('click', () => {
         document.getElementById('docs-modal').classList.remove('hidden-modal');
     });
     document.getElementById('close-docs-btn')?.addEventListener('click', () => {
-        document.getElementById('docs-modal').classList.add('hidden-modal');
+        document.getElementById('docs-modal')?.classList.add('hidden-modal');
     });
 
     renderToolkit();
@@ -457,7 +452,7 @@ function init() {
     restoreSupervisorData();
 
     if (activeSession) {
-        try { showActiveSession(); } catch(e) { console.error('[init] showActiveSession falló:', e); }
+        showActiveSession();
         openModule('modulo-supervision');
     } else {
         showSection('selection-section');
@@ -480,14 +475,10 @@ function initFirebaseCatalogos() {
 
         catalogosCache = data;
 
-        // Poblar select de protestas
-        const protestList = document.getElementById('protest-name');
+        // Poblar datalist de protestas
+        const protestList = document.getElementById('protest-list-plan');
         if (protestList) {
-            const protestasArr = Array.isArray(data.protestas)
-                ? data.protestas
-                : Object.values(data.protestas || {});
-            protestList.innerHTML = '<option value="">Selecciona protesta...</option>' +
-                protestasArr.map(p => `<option value="${p}">${p}</option>`).join('');
+            protestList.innerHTML = (data.protestas || []).map(p => `<option value="${p}">`).join('');
         }
 
         // Actualizar datalists de puntos si hay una categoría seleccionada
@@ -737,12 +728,7 @@ function renderTimeline(list) {
             (inc.cantidad ? '<span style="font-weight:800; margin-left:5px;">[' + inc.cantidad + ']</span>' : '') +
             '</div>' +
             '<div style="word-wrap: break-word;">' + inc.description + '</div>' +
-            (inc.mediaUrls && inc.mediaUrls.length > 0
-                ? inc.mediaUrls.map(m => m.type && m.type.startsWith('image/')
-                    ? '<img src="' + m.url + '" class="chat-img" onclick="window.open(\'' + m.url + '\')">'
-                    : '<video controls src="' + m.url + '" style="width:100%; margin-top:8px; border-radius:8px;"></video>'
-                ).join('')
-                : (inc.imageUrl ? '<img src="' + inc.imageUrl + '" class="chat-img" onclick="window.open(\'' + inc.imageUrl + '\')">' : '')) +
+            (inc.imageUrl ? '<img src="' + inc.imageUrl + '" class="chat-img" onclick="window.open(\'' + inc.imageUrl + '\')">' : '') +
             (inc.audioUrl ? '<audio controls src="' + inc.audioUrl + '" style="width:100%; margin-top:10px; height:35px;"></audio>' : '') +
             '<div class="chat-time">' + timeStr + '</div>' +
             '</div>';
@@ -894,13 +880,6 @@ document.getElementById('add-incident-btn')?.addEventListener('click', () => ope
 document.getElementById('add-update-btn')?.addEventListener('click', () => openIncidentModal('actualizacion'));
 document.getElementById('cancel-incident-btn')?.addEventListener('click', () => incidentModal.classList.add('hidden-modal'));
 
-// Conectar inputs de archivos con addIncidentFiles
-['incident-photo', 'incident-photo-cam', 'incident-photo-gal', 'incident-video-cam'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', function() {
-        if (this.files?.length) addIncidentFiles(this.files);
-    });
-});
-
 function openIncidentModal(mode) {
     incidentModal.classList.remove('hidden-modal');
     document.getElementById('modal-title').textContent = mode === 'actualizacion' ? 'Enviar Actualización' : 'Reportar Incidencia';
@@ -934,10 +913,6 @@ saveIncidentBtn?.addEventListener('click', async () => {
 
     try {
         // === SUBIR MÚLTIPLES ARCHIVOS (fotos + videos) ===
-        if (incidentMediaFiles.length > 0 && !_fbStorage) {
-            console.warn('[Upload] Firebase Storage no está disponible (_fbStorage es null)');
-            showToast && showToast('⚠️ Storage no disponible — foto no adjuntada', '#e67e22');
-        }
         if (incidentMediaFiles.length > 0 && _fbStorage) {
             const mediaUrls = [];
             for (const m of incidentMediaFiles) {
@@ -950,10 +925,7 @@ saveIncidentBtn?.addEventListener('click', async () => {
                     await ref.put(fileToUpload);
                     const url = await ref.getDownloadURL();
                     mediaUrls.push({ url, type: m.type, name: m.file.name });
-                } catch (e) {
-                    console.error('[Upload foto] Error:', e.code, e.message);
-                    showToast && showToast('⚠️ Error al subir foto: ' + (e.code || e.message), '#e74c3c');
-                }
+                } catch (e) { /* continuar con el siguiente */ }
             }
             if (mediaUrls.length > 0) {
                 // Compatibilidad: el primer archivo de imagen va también en imageUrl
@@ -1109,18 +1081,49 @@ function renderHistory() {
     ).join('') || '<p style="color:#999;font-size:0.9rem; padding:10px;">Sin registros previos.</p>';
 }
 
-// Reconexión cuando el móvil vuelve del background
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') return;
-    if (!activeSession) {
-        const saved = localStorage.getItem('dp_active_session');
-        if (saved) { try { activeSession = JSON.parse(saved); } catch(e) {} }
+function exportData() {
+    if (!history || history.length === 0) {
+        alert('No hay registros para exportar.');
+        return;
     }
-    if (activeSession) {
-        listenSharedFeed();
-        startLocationTracking();
-    }
-});
+    const headers = ['ID Sesión','Tipo','Fecha','Turno','Supervisor','Oficina','Protesta','Punto','Inicio','Fin','Duración (min)','Lat Inicio','Lng Inicio'];
+    const rows = history.map(h => [
+        h.sessionId || '',
+        h.type || '',
+        h.fecha || '',
+        h.turno || '',
+        h.name || '',
+        h.office || '',
+        h.protestName || '',
+        h.location || '',
+        h.startTime ? formatAMPM(new Date(h.startTime)) : '',
+        h.endTime   ? formatAMPM(new Date(h.endTime))   : '',
+        h.startTime ? Math.round(((h.endTime || Date.now()) - h.startTime) / 60000) : '',
+        h.startLat || '',
+        h.startLng || ''
+    ]);
+    const csv = [headers, ...rows]
+        .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
+        .join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'supervisiones_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Exponer funciones usadas desde HTML (onclick/onchange)
+window.showMainMenu   = showMainMenu;
+window.openModule     = openModule;
+window.goToAlertas    = goToAlertas;
+window.goToAcciones   = goToAcciones;
+window.showAcpForm    = showAcpForm;
+window.showPlanForm   = showPlanForm;
+window.showSection    = showSection;
+window.openWaModal    = openWaModal;
+window.adminLogin     = adminLogin;
 
 // Arranque
 document.addEventListener('DOMContentLoaded', init);

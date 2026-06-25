@@ -179,13 +179,13 @@ function initDashboard() {
     
     const filterDate = document.getElementById('filter-date');
     const filterProtest = document.getElementById('filter-protest');
-    
-    filterDate.value = new Date().toISOString().split('T')[0];
-    
-    filterDate.addEventListener('change', () => listenToSessions(filterDate.value));
-    
+
+    if (filterDate) filterDate.value = new Date().toISOString().split('T')[0];
+
+    filterDate?.addEventListener('change', () => listenToSessions(filterDate.value));
+
     // Filtrado secundario por protesta
-    filterProtest.addEventListener('change', () => applyFilters());
+    filterProtest?.addEventListener('change', () => applyFilters());
 
     document.getElementById('refresh-btn')?.addEventListener('click', () => location.reload());
     
@@ -221,7 +221,7 @@ function initDashboard() {
     document.getElementById('save-catalogos-btn')?.addEventListener('click', saveCatalogosToFirebase);
 
     // Carga inicial
-    listenToSessions(filterDate.value);
+    listenToSessions(filterDate?.value || new Date().toISOString().split('T')[0]);
 }
 
 function initMap() {
@@ -1604,5 +1604,4 @@ async function generarReporteAlertasACP() {
     }
 }
 
-window.generarReporteAlertasACP = generarReporteAlertasACP;
-
+window.gener

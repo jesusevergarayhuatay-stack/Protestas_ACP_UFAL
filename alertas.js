@@ -143,7 +143,7 @@ function setupAlertasListeners() {
 
     // Vincular conflicto
     document.getElementById('buscar-conflicto-alerta-btn')?.addEventListener('click', () => openConflictoSearch('alerta'));
-    document.getElementById('desvincular-conflicto-alerta')?.addEventListener('click', () => unlinkConflicto('alerta'));
+    document.getElementById('alerta-desvincular-conflicto')?.addEventListener('click', () => unlinkConflicto('alerta'));
 }
 
 // --- VISTA LISTA / FORMULARIO ---
@@ -589,27 +589,88 @@ function calcularNivelRiesgo(formPrefix) {
 let _alertaConflictoVinculado = null;
 
 function openConflictoSearch(formPrefix) {
-    // Búsqueda simple en Firebase
-    const query = prompt('Buscar conflicto por nombre:');
-    if (!query) return;
-    const ref = fbRef('conflictos');
-    if (!ref) return alert('Sin conexión a Firebase.');
+    window._conflictoSearchPrefix = formPrefix;
 
-    ref.orderByChild('nombre').startAt(query).endAt(query + '').limitToFirst(5).once('value', snap => {
-        const data = snap.val();
-        if (!data) { alert('No se encontraron conflictos con ese nombre.'); return; }
+    // Poblar filtro de departamentos (solo la primera vez)
+    const dptoSelect = document.getElementById('conflicto-filter-dpto');
+    if (dptoSelect && dptoSelect.options.length === 1) {
+        const dptos = [...new Set((window.CONFLICTOS_DB || []).map(c => c.dpto).filter(Boolean))].sort();
+        dptos.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d; opt.textContent = d;
+            dptoSelect.appendChild(opt);
+        });
+    }
 
-        const options = Object.entries(data);
-        const nombres = options.map(([id, c], i) => `${i + 1}. ${c.nombre || id}`).join('\n');
-        const sel = prompt('Selecciona el número:\n' + nombres);
-        const idx = parseInt(sel) - 1;
-        if (idx >= 0 && idx < options.length) {
-            const [id, conflicto] = options[idx];
-            if (formPrefix === 'alerta') window._alertaConflictoVinculado = { id, nombre: conflicto.nombre };
-            else window._acpConflictoVinculado = { id, nombre: conflicto.nombre }
-        }
-    });
+    // Limpiar y abrir modal
+    const input = document.getElementById('conflicto-search-input');
+    if (input) input.value = '';
+    if (dptoSelect) dptoSelect.value = '';
+    window.filtrarConflictos();
+    document.getElementById('conflicto-search-modal')?.classList.remove('hidden-modal');
+    setTimeout(() => input?.focus(), 100);
 }
+
+
+function estadoBadge(estado) {
+    const colores = { 'Activo': '#16a34a', 'Latente': '#d97706', 'Retirado': '#6b7280', 'Resuelto': '#2563eb' };
+    const bg      = { 'Activo': '#dcfce7', 'Latente': '#fef3c7', 'Retirado': '#f3f4f6', 'Resuelto': '#dbeafe' };
+    const c = colores[estado] || '#555';
+    const b = bg[estado]      || '#eee';
+    return '<span style="background:' + b + ';color:' + c + ';padding:1px 7px;border-radius:20px;font-size:0.75rem;font-weight:600;">' + (estado || '—') + '</span>';
+}
+window.filtrarConflictos = function() {
+    const q    = (document.getElementById('conflicto-search-input')?.value || '').toLowerCase().trim();
+    const dpto = document.getElementById('conflicto-filter-dpto')?.value || '';
+    const db   = window.CONFLICTOS_DB || [];
+
+    const results = db.filter(c => {
+        const matchDpto = !dpto || c.dpto === dpto;
+        const matchText = !q ||
+            c.codigo.toLowerCase().includes(q) ||
+            c.nombre.toLowerCase().includes(q) ||
+            c.dpto.toLowerCase().includes(q) ||
+            (c.estado || '').toLowerCase().includes(q);
+        return matchDpto && matchText;
+    });
+
+    const countEl = document.getElementById('conflicto-count');
+    if (countEl) countEl.textContent = results.length + ' resultado' + (results.length !== 1 ? 's' : '');
+
+    const container = document.getElementById('conflicto-results');
+    if (!container) return;
+
+    if (results.length === 0) {
+        container.innerHTML = '<p style="padding:20px;text-align:center;color:#999;">Sin resultados.</p>';
+        return;
+    }
+
+    container.innerHTML = results.map(function(c) {
+        const cod  = c.codigo.replace(/\'/g, "\\\'");
+        const nom  = c.nombre.replace(/\'/g, "\\\'");
+        return '<div onclick="seleccionarConflicto(\'' + cod + '\',\'' + nom + '\')"' +
+            ' style="padding:10px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer;"' +
+            ' onmouseover="this.style.background=\'#f0f5ff\'" onmouseout="this.style.background=\'\'">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+            '<div><div style="font-weight:700;color:#003366;font-size:0.88rem;">' + c.nombre + '</div>' +
+            '<div style="font-size:0.76rem;color:#666;margin-top:2px;">&#128203; <code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;">' + c.codigo + '</code>&nbsp;' + estadoBadge(c.estado) + '</div></div>' +
+            '<span style="font-size:0.73rem;background:#e8f0fe;color:#1a56db;padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;">' + c.dpto + '</span>' +
+            '</div></div>';
+    }).join('');
+};
+
+window.seleccionarConflicto = function(codigo, nombre) {
+    const prefix = window._conflictoSearchPrefix;
+    const conflicto = { id: codigo, codigo: codigo, nombre: nombre };
+    if (prefix === 'alerta') window._alertaConflictoVinculado = conflicto;
+    else                     window._acpConflictoVinculado    = conflicto;
+    renderConflictoVinculado(prefix, conflicto);
+    window.cerrarConflictoModal();
+};
+
+window.cerrarConflictoModal = function() {
+    document.getElementById('conflicto-search-modal')?.classList.add('hidden-modal');
+};
 
 function renderConflictoVinculado(formPrefix, conflicto) {
     const container = document.getElementById(formPrefix + '-conflicto-container');
@@ -651,7 +712,7 @@ window.removeDoc = removeDoc;
 window.calcularNivelRiesgo = calcularNivelRiesgo;
 window.openConflictoSearch = openConflictoSearch;
 window.unlinkConflicto = unlinkConflicto;
+window.renderConflictoVinculado = renderConflictoVinculado;
 window.openAlertaForm = openAlertaForm;
 window.renderActoresDemandantesList = renderActoresDemandantesList;
-window.renderActoresDemandadosList = renderActoresDemandadosList;
-window.initAlertasModule = initAlertasModule;
+window.renderActoresDemandadosList = renderActoresDe

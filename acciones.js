@@ -88,7 +88,7 @@ function setupAcpListeners() {
 
     // Vincular conflicto
     document.getElementById('buscar-conflicto-acp-btn')?.addEventListener('click', () => openConflictoSearch('acp'));
-    document.getElementById('desvincular-conflicto-acp')?.addEventListener('click', () => unlinkConflicto('acp'));
+    document.getElementById('acp-desvincular-conflicto')?.addEventListener('click', () => unlinkConflicto('acp'));
 }
 
 // --- VISTAS ---

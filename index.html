@@ -877,7 +877,7 @@
                         </div>
                         <input type="file" id="acp-photo-cam" accept="image/*" capture="environment" style="display:none;" onchange="syncPhotoInput(this,'acp-photo','acp-photo-preview')">
                         <input type="file" id="acp-photo-gal" accept="image/*" style="display:none;" onchange="syncPhotoInput(this,'acp-photo','acp-photo-preview')">
-                        <input type="file" id="acp-photo" accept="image/*" style="display:none;" required>
+                        <input type="file" id="acp-photo" accept="image/*" style="display:none;">
                         <div id="acp-photo-preview" style="margin-top:6px;"></div>
                     </div>
                     <button type="submit" class="btn-primary">Iniciar Registro 🚀</button>
@@ -922,9 +922,10 @@
                     </div>
                     <div class="form-group">
                         <label>Nombre de la Protesta</label>
-                        <select id="protest-name" class="form-select" required>
-                            <option value="">Selecciona protesta...</option>
-                        </select>
+                        <input type="text" id="protest-name" list="protest-list-plan" placeholder="Colectivo o marcha..."
+                            required>
+                        <datalist id="protest-list-plan">
+                        </datalist>
                     </div>
                     <div class="form-group">
                         <label>Categoría de Supervisión</label>
@@ -1030,7 +1031,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label style="font-size:0.82rem; font-weight:600; color:#555;">Cantidad de personas</label>
+                    <label style="font-size:0.82rem; font-weight:600; color:#555;">Cantidad afectada</label>
                     <input type="number" id="incidencia-cantidad" min="0" placeholder="Ej: 5" class="form-input">
                 </div>
 
@@ -1100,15 +1101,44 @@
         </div>
     </div>
 
+    <!-- MODAL BUSCADOR DE CONFLICTOS -->
+    <div id="conflicto-search-modal" class="modal hidden-modal" style="z-index:9999;">
+        <div class="modal-content" style="max-width:560px;width:95%;max-height:85vh;display:flex;flex-direction:column;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="margin:0;font-size:1rem;color:#003366;">🔍 Buscar Conflicto Social</h3>
+                <button onclick="cerrarConflictoModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#666;">✕</button>
+            </div>
+            <input type="text" id="conflicto-search-input" class="form-input"
+                placeholder="Buscar por código, nombre o departamento..."
+                style="margin-bottom:8px;" oninput="filtrarConflictos()">
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+                <select id="conflicto-filter-dpto" class="form-input" style="flex:1;min-width:150px;font-size:0.82rem;" onchange="filtrarConflictos()">
+                    <option value="">Todos los departamentos</option>
+                </select>
+                <span id="conflicto-count" style="font-size:0.78rem;color:#888;white-space:nowrap;"></span>
+            </div>
+            <div id="conflicto-results" style="overflow-y:auto;flex:1;border:1px solid #e0e0e0;border-radius:8px;"></div>
+        </div>
+    </div>
+
     <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-    <script src="firebase-config.js?v=2"></script>
-    <script src="offline.js?v=2"></script>
-    <script src="app.js?v=2"></script>
-    <script src="alertas.js?v=2" defer></script>
-    <script src="acciones.js?v=2" defer></script>
-    <script src="dashboard.js?v=2" defer></script>
+    <script src="firebase-config.js"></script>
+    <script src="offline.js"></script>
+    <script src="conflictos-data.js"></script>
+    <script src="app.js"></script>
+    <script src="alertas.js" defer></script>
+    <script src="acciones.js" defer></script>
+    <script src="dashboard.js" defer></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch(function(err) { console.warn('SW no registrado:', err); });
+            });
+        }
+    </script>
 </body>
 </html>

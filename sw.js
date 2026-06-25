@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dp-supervision-v7';
+const CACHE_NAME = 'dp-supervision-v6';
 const ASSETS = [
     './',
     './index.html',
@@ -13,7 +13,8 @@ const ASSETS = [
     './manifest.json',
     './icon-192.png',
     './icon-512.png',
-    './logo.png'
+    './logo.png',
+    './compensacion.js'
 ];
 
 self.addEventListener('install', event => {
@@ -70,7 +71,4 @@ self.addEventListener('notificationclick', event => {
             for (const client of clientList) {
                 if (client.url.includes('defensor.html') && 'focus' in client) return client.focus();
             }
-            return clients.openWindow(targetUrl);
-        })
-    );
-});
+            return clients.openWindow(targetUrl
