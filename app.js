@@ -881,22 +881,30 @@ document.getElementById('add-update-btn')?.addEventListener('click', () => openI
 document.getElementById('cancel-incident-btn')?.addEventListener('click', () => incidentModal.classList.add('hidden-modal'));
 
 function openIncidentModal(mode) {
+    incidentModal._mode = mode;
     incidentModal.classList.remove('hidden-modal');
     document.getElementById('modal-title').textContent = mode === 'actualizacion' ? 'Enviar Actualización' : 'Reportar Incidencia';
     document.getElementById('incident-class-group').style.display = mode === 'actualizacion' ? 'none' : 'block';
+    // En actualización, forzar clasificación a "Actualización"
+    if (mode === 'actualizacion') {
+        document.getElementById('incident-class').value = '';
+    }
 }
 
 saveIncidentBtn?.addEventListener('click', async () => {
     const rawDesc = document.getElementById('incident-desc').value;
     const qty = document.getElementById('incidencia-cantidad').value;
-    const category = document.getElementById('incident-class').value;
+    const isActualizacion = incidentModal._mode === 'actualizacion';
+    const category = isActualizacion ? 'Actualización' : document.getElementById('incident-class').value;
 
     if (!rawDesc) return alert("Describe el suceso.");
 
     saveIncidentBtn.disabled = true;
     saveIncidentBtn.textContent = "Enviando...";
 
-    const finalDesc = category + (qty ? ' (' + qty + ')' : '') + ' - ' + rawDesc;
+    const finalDesc = isActualizacion
+        ? rawDesc
+        : category + (qty ? ' (' + qty + ')' : '') + ' - ' + rawDesc;
 
     const inc = {
         timestamp: Date.now(),
