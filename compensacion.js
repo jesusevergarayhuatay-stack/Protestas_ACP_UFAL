@@ -79,6 +79,7 @@ function compRef(path) {
 // ---- ESTADO LOCAL ----
 let _compSupervisionesCache = {}; // por staffKey → array
 let _compPermisosCache = {};      // por staffKey → array
+let _compCiclosCache = {};        // por staffKey → ISO date del último cierre
 let _compTabActivo = 'registrar';
 let _compStaffActivo = 'jesus';   // por defecto tú
 let _compSemanaOffset = 0;        // semanas relativas a la actual (0 = esta semana)
@@ -123,7 +124,7 @@ function renderCompPanel() {
         </div>
 
         <!-- Saldo rápido de la persona seleccionada -->
-        <div id="comp-saldo-banner" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px;">
+        <div id="comp-saldo-banner" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:12px;">
             <div style="background:#f9fafb; border-radius:12px; padding:14px; text-align:center;">
                 <p style="font-size:0.75rem; color:#777; margin:0 0 4px;">Horas ganadas</p>
                 <p id="comp-total-ganadas" style="font-size:1.5rem; font-weight:700; margin:0; color:#27ae60;">0 h</p>
@@ -139,6 +140,13 @@ function renderCompPanel() {
                 <p id="comp-saldo-disponible" style="font-size:1.5rem; font-weight:700; margin:0; color:#2980b9;">0 h</p>
                 <p style="font-size:0.7rem; color:#aaa; margin:2px 0 0;">para pedir permiso</p>
             </div>
+        </div>
+        <!-- Indicador de ciclo activo + botón nueva compensación -->
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:20px; padding:10px 14px; background:#f0f4f8; border-radius:10px;">
+            <p id="comp-ciclo-label" style="margin:0; font-size:0.78rem; color:#555;">⏱️ Ciclo activo: <strong id="comp-ciclo-desde">—</strong></p>
+            <button onclick="compNuevoCiclo()" style="background:white; border:1.5px solid #e74c3c; color:#e74c3c; border-radius:8px; padding:6px 14px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                🔄 Nueva compensación general
+            </button>
         </div>
 
         <!-- Sub-tabs -->
@@ -378,6 +386,15 @@ function compCargarDatos() {
                 compActualizarUI();
             });
         }
+
+        // Ciclos: fecha ISO del último cierre de ciclo
+        const refCiclo = compRef(`ciclos/${s.key}`);
+        if (refCiclo) {
+            refCiclo.on('value', snap => {
+                _compCiclosCache[s.key] = snap.val() || null; // string ISO o null
+                compActualizarUI();
+            });
+        }
     });
 }
 
@@ -490,17 +507,22 @@ function compGuardarPermiso() {
 // CALCULAR SALDO
 // =============================================
 function compCalcularSaldo(staffKey) {
-    const hoy = new Date().toISOString().split('T')[0];
+    // Fecha de inicio del ciclo activo (null = desde siempre)
+    const inicioCiclo = _compCiclosCache[staffKey] || null;
+
     const sups = _compSupervisionesCache[staffKey] || [];
-    // Solo cuentan supervisiones NO expiradas
+    // Solo supervisiones NO expiradas y dentro del ciclo activo
     const ganadas = sups
-        .filter(s => !compEstaExpirado(s.fecha))
+        .filter(s => !compEstaExpirado(s.fecha) && (!inicioCiclo || s.fecha >= inicioCiclo))
         .reduce((acc, s) => acc + (s.horasCompensables || 0), 0);
 
     const permisos = _compPermisosCache[staffKey] || [];
-    const usadas = permisos.reduce((acc, p) => acc + (p.horas || 0), 0);
+    // Solo permisos dentro del ciclo activo
+    const usadas = permisos
+        .filter(p => !inicioCiclo || p.fechaPermiso >= inicioCiclo)
+        .reduce((acc, p) => acc + (p.horas || 0), 0);
 
-    return { ganadas, usadas };
+    return { ganadas, usadas, inicioCiclo };
 }
 
 // =============================================
@@ -508,7 +530,7 @@ function compCalcularSaldo(staffKey) {
 // =============================================
 function compActualizarUI() {
     const staff = _compStaffActivo;
-    const { ganadas, usadas } = compCalcularSaldo(staff);
+    const { ganadas, usadas, inicioCiclo } = compCalcularSaldo(staff);
     const saldo = Math.max(0, ganadas - usadas);
 
     const g = document.getElementById('comp-total-ganadas');
@@ -517,6 +539,14 @@ function compActualizarUI() {
     if (g) g.textContent = compFormatHoras(ganadas);
     if (u) u.textContent = compFormatHoras(usadas);
     if (d) { d.textContent = compFormatHoras(saldo); d.style.color = saldo <= 0 ? '#e74c3c' : '#2980b9'; }
+
+    // Etiqueta del ciclo activo
+    const cicloDesde = document.getElementById('comp-ciclo-desde');
+    if (cicloDesde) {
+        cicloDesde.textContent = inicioCiclo
+            ? compFormatFecha(inicioCiclo)
+            : 'inicio del registro';
+    }
 
     compRenderListaSupervisiones();
     compRenderListaPermisos();
@@ -536,19 +566,23 @@ function compRenderListaSupervisiones() {
         return;
     }
 
+    const inicioCiclo = _compCiclosCache[_compStaffActivo] || null;
+
     container.innerHTML = sups.map(s => {
         const expirado = compEstaExpirado(s.fecha);
+        const esCicloAnterior = inicioCiclo && s.fecha < inicioCiclo;
         const tipoDia = compTipoDia(s.fecha);
         const diasRestantes = expirado ? 0 : Math.floor((new Date(s.expira + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24));
         return `
-        <div class="comp-sup-card ${expirado ? 'expirado' : ''}">
+        <div class="comp-sup-card ${expirado || esCicloAnterior ? 'expirado' : ''}">
             <div style="flex:1; min-width:0;">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
-                    <strong style="font-size:0.88rem; color:${expirado ? '#aaa' : 'var(--primary)'};">${s.nombre || 'Supervisión'}</strong>
+                    <strong style="font-size:0.88rem; color:${expirado || esCicloAnterior ? '#aaa' : 'var(--primary)'};">${s.nombre || 'Supervisión'}</strong>
                     <span style="font-size:0.73rem; padding:2px 8px; border-radius:20px; font-weight:600;
                                  background:${tipoDia.tipo === 'fds' ? '#eaf7f0' : '#fef9e7'};
                                  color:${tipoDia.color};">${tipoDia.texto}</span>
-                    ${expirado ? '<span style="font-size:0.73rem; padding:2px 8px; border-radius:20px; background:#fdecea; color:#c0392b; font-weight:600;">⚠️ Expirado</span>' : ''}
+                    ${esCicloAnterior ? '<span style="font-size:0.73rem; padding:2px 8px; border-radius:20px; background:#f0f0f0; color:#888; font-weight:600;">📦 Ciclo anterior</span>' : ''}
+                    ${expirado && !esCicloAnterior ? '<span style="font-size:0.73rem; padding:2px 8px; border-radius:20px; background:#fdecea; color:#c0392b; font-weight:600;">⚠️ Expirado</span>' : ''}
                 </div>
                 <div style="font-size:0.8rem; color:#777; display:flex; gap:14px; flex-wrap:wrap;">
                     <span>📅 ${compFormatFecha(s.fecha)}</span>
@@ -580,14 +614,18 @@ function compRenderListaPermisos() {
         return;
     }
 
+    const inicioCicloP = _compCiclosCache[_compStaffActivo] || null;
+
     container.innerHTML = permisos.map(p => {
         const tomado = p.fechaPermiso <= hoy;
+        const esCicloAnteriorP = inicioCicloP && p.fechaPermiso < inicioCicloP;
         return `
-        <div class="comp-permiso-card">
+        <div class="comp-permiso-card" style="${esCicloAnteriorP ? 'opacity:0.5;' : ''}">
             <div>
-                <span style="font-size:0.88rem; font-weight:600; color:${tomado ? '#27ae60' : '#2980b9'};">
-                    ${tomado ? '✅' : '🗓️'} ${compFormatFecha(p.fechaPermiso)}
+                <span style="font-size:0.88rem; font-weight:600; color:${esCicloAnteriorP ? '#aaa' : tomado ? '#27ae60' : '#2980b9'};">
+                    ${esCicloAnteriorP ? '📦' : tomado ? '✅' : '🗓️'} ${compFormatFecha(p.fechaPermiso)}
                 </span>
+                ${esCicloAnteriorP ? '<span style="font-size:0.72rem; color:#aaa; margin-left:8px;">ciclo anterior</span>' : ''}
                 <span style="font-size:0.8rem; color:#777; margin-left:10px;">
                     ${p.horaInicio} – ${p.horaFin}
                 </span>
@@ -1072,6 +1110,39 @@ function compEliminarPermiso(staffKey, id) {
 }
 
 // =============================================
+// NUEVA COMPENSACIÓN GENERAL (cerrar ciclo)
+// =============================================
+function compNuevoCiclo() {
+    const staff = _compStaffActivo;
+    const staffInfo = COMP_STAFF.find(s => s.key === staff);
+    const nombre = staffInfo ? staffInfo.nombre : staff;
+
+    const hoy = new Date().toISOString().split('T')[0];
+    const { ganadas, usadas } = compCalcularSaldo(staff);
+    const saldo = Math.max(0, ganadas - usadas);
+
+    const msg = saldo > 0
+        ? `¿Cerrar el ciclo actual de ${nombre} y abrir una nueva compensación general?\n\nOjo: quedan ${compFormatHoras(saldo)} de saldo que NO se trasladarán. Los registros anteriores quedan en el historial pero no contarán en el nuevo ciclo.`
+        : `¿Cerrar el ciclo actual de ${nombre} y abrir una nueva compensación general?\n\nEl saldo actual es 0. Los nuevos registros comenzarán desde hoy (${compFormatFecha(hoy)}).`;
+
+    if (!confirm(msg)) return;
+
+    const ref = compRef(`ciclos/${staff}`);
+    if (ref) {
+        ref.set(hoy)
+            .then(() => {
+                showToast && showToast(`🔄 Nuevo ciclo iniciado para ${nombre.split(' ')[0]} (${compFormatFecha(hoy)})`, '#2980b9');
+            })
+            .catch(err => alert('Error: ' + err.message));
+    } else {
+        // Modo local (sin Firebase)
+        _compCiclosCache[staff] = hoy;
+        compActualizarUI();
+        showToast && showToast(`🔄 Nuevo ciclo iniciado (modo local)`, '#2980b9');
+    }
+}
+
+// =============================================
 // EXPORTS GLOBALES
 // =============================================
 window.initCompensacionModule    = initCompensacionModule;
@@ -1087,3 +1158,4 @@ window.compRenderResumen         = compRenderResumen;
 window.compNavSemana             = compNavSemana;
 window.compGenerarTextoCorreo    = compGenerarTextoCorreo;
 window.compCopiarCorreo          = compCopiarCorreo;
+window.compNuevoCiclo            = compNuevoCiclo;
